@@ -3,7 +3,7 @@ import battlecode.common.*;
 import java.util.*;
 
 public strictfp class RobotPlayer {
-	final static int num_slices = 30;
+	final static int num_slices = 20;
     static RobotController rc;
 	static Team FRIEND;
 	static Team ENEMY;
@@ -142,7 +142,7 @@ public strictfp class RobotPlayer {
 				}
 				else{
 					for(int i = 0; i < num_slices; i++){
-						if((rc.readBroadcast(904) < 20 || rc.getTeamBullets() > 300) && rc.canBuildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices))){
+						if((rc.readBroadcast(904) < 20) && rc.canBuildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices))){
 							//System.out.println("Building scout...");
 							rc.buildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices));
 						}
@@ -259,6 +259,7 @@ public strictfp class RobotPlayer {
 		
 		rc.broadcast(904, rc.readBroadcast(904) + 1);
 		Direction rand = randomDirection();
+		RobotInfo target_robot = null;
 		int target_id = -1;
 		MapLocation target_loc = invalid_location;
 		
@@ -294,24 +295,27 @@ public strictfp class RobotPlayer {
 						int priority = -1;
 						for(int i = 0; i < enemies.length; i++){
 							if(priority == -1){
-								if((enemies[i].getType() == RobotType.SCOUT || enemies[i].getType() == RobotType.ARCHON) && rc.getTeamBullets() < 200){
-									priority = -1;
-								}
-								else{
-									priority = i;
-								}
-							}
-							else if(enemies[priority].getType() != RobotType.GARDENER && enemies[i].getType() == RobotType.GARDENER){
 								priority = i;
 							}
-							else if(enemies[priority].getType() != RobotType.GARDENER && enemies[priority].getType() != RobotType.SOLDIER && enemies[i].getType() == RobotType.SOLDIER){
+							if(enemies[priority].getType() != RobotType.GARDENER && enemies[i].getType() == RobotType.GARDENER){
 								priority = i;
+								break;
 							}
-							else if(enemies[priority].getType() != RobotType.GARDENER && enemies[priority].getType() != RobotType.SOLDIER && enemies[priority].getType() != RobotType.LUMBERJACK && enemies[i].getType() == RobotType.LUMBERJACK){
+							else if(enemies[priority].getType() != RobotType.SOLDIER && enemies[i].getType() == RobotType.SOLDIER){
 								priority = i;
+								break;
+							}
+							else if(enemies[priority].getType() != RobotType.LUMBERJACK && enemies[i].getType() == RobotType.LUMBERJACK){
+								priority = i;
+								break;
+							}
+							else if(enemies[priority].getType() != RobotType.ARCHON && enemies[i].getType() == RobotType.ARCHON){
+								priority = i;
+								break;
 							}
 						}
 						if(priority != -1){
+							target_robot = enemies[priority];
 							target_id = enemies[priority].getID();
 							target_loc = enemies[priority].getLocation();
 						}
@@ -323,10 +327,13 @@ public strictfp class RobotPlayer {
 				MapLocation target;
 				
 				if(isValidLoc(target_loc)){
-					target = getBestShootingLocation(target_loc);
+					target = getBestShootingLocation(target_robot);
 				}
 				else{
 					target = invalid_location;
+				}
+				if(rc.getRoundNum() > 100 && rc.getRoundNum() < 150 && target_id != -1){
+					System.out.println(rc.getLocation() + " " + target_robot.getType() + " " + target);
 				}
 				
 				//System.out.println("Made it D");
@@ -383,7 +390,7 @@ public strictfp class RobotPlayer {
 	
 	static void checkForStockpile() throws GameActionException{
 		try{
-			if(rc.getRobotCount() > 40 || rc.getRoundNum() > 2800){
+			if(rc.getRobotCount() > 40 || rc.getRoundNum() > 2800 || rc.getTeamBullets() > 10000 - 10 * rc.getTeamVictoryPoints()){
 				rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % 10));
 			}
 		} catch(Exception e){
@@ -517,9 +524,10 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
-	static MapLocation getBestShootingLocation(MapLocation target) throws GameActionException{
+	static MapLocation getBestShootingLocation(RobotInfo target_robot) throws GameActionException{
 		try{
 			//System.out.println("Calculating best shooting location... " + Clock.getBytecodeNum());
+			MapLocation target = target_robot.getLocation();
 			RobotInfo[] robots = rc.senseNearbyRobots();
 			TreeInfo[] trees = rc.senseNearbyTrees();
 			
@@ -531,6 +539,9 @@ public strictfp class RobotPlayer {
 			//System.out.println("Initialized clear angles... " + Clock.getBytecodeNum());
 			
 			for(int i = 0; i < robots.length; i++){
+				if(target.distanceTo(robots[i].getLocation()) < getSightRadius()){
+					continue;
+				}
 				//System.out.println("Finding clear angles around robot " + i + "... " + Clock.getBytecodeNum());
 				Direction vect = new Direction(target, robots[i].getLocation());
 				float dist = (float)target.distanceTo(robots[i].getLocation());
@@ -554,6 +565,9 @@ public strictfp class RobotPlayer {
 			//System.out.println("Calculated angles not blocked by robots... " + Clock.getBytecodeNum());
 			
 			for(int i = 0; i < trees.length; i++){
+				if(target.distanceTo(trees[i].getLocation()) < getSightRadius()){
+					continue;
+				}
 				Direction vect = new Direction(target, trees[i].getLocation());
 				float dist = (float)target.distanceTo(trees[i].getLocation());
 				float spread = (float)Math.asin(trees[i].getRadius()/dist);
@@ -564,7 +578,7 @@ public strictfp class RobotPlayer {
 				if(center_angle < 0){
 					center_angle = 2 * (float) Math.PI + center_angle;
 				}
-				System.out.println("Target is at " + target + " protected by tree at " + trees[i].getLocation() + " for angles " + center_angle + " " + spread);
+				//System.out.println("Target is at " + target + " protected by tree at " + trees[i].getLocation() + " for angles " + center_angle + " " + spread);
 				for(int j = 0; j < num_slices; j++){
 					if(center_angle - spread - 0.1 < potential_angles[j] && potential_angles[j] < center_angle + spread + 0.1){
 						clear_angles[j] = false;
@@ -581,7 +595,14 @@ public strictfp class RobotPlayer {
 					continue;
 				}
 				Direction potential_dir = absolute_right.rotateLeftRads(potential_angles[i]);
-				MapLocation potential_shooting_loc = target.add(potential_dir, getSightRadius());
+				float dist = 0;
+				if(target_robot.getType() == RobotType.GARDENER || target_robot.getType() == RobotType.ARCHON){
+					dist = 2;
+				}
+				else{
+					dist = getSightRadius();
+				}
+				MapLocation potential_shooting_loc = target.add(potential_dir, dist);
 				potential_loc.add(potential_shooting_loc);
 			}
 			
