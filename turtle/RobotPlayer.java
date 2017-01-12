@@ -70,7 +70,7 @@ public strictfp class RobotPlayer {
 			
             try {
 				
-				if(rc.getTeamBullets() > 200){
+				if(rc.getTeamBullets() > 200 && rc.getRoundNum() > 50){
 					rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % 10));
 				}
 				
