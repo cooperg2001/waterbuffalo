@@ -3,13 +3,13 @@ import battlecode.common.*;
 import java.util.*;
 
 public strictfp class RobotPlayer {
-	final static int num_slices = 10;
+	final static int num_slices = 10; // The number of angles a robot will consider to determine shooting location etc.
 	final static int num_gardener_slices = 36;
     static RobotController rc;
 	static Team FRIEND;
 	static Team ENEMY;
 	static Team NEUTRAL;
-	static Direction forward;
+	static Direction forward; // Heuristically speaking, a direction towards the enemy
 	static Direction backward;
 	static Direction left;
 	static Direction right;
@@ -30,13 +30,13 @@ public strictfp class RobotPlayer {
     public static void run(RobotController rc) throws GameActionException {
 
         // Initialize important variables
-        RobotPlayer.rc = rc;
-		RobotPlayer.FRIEND = rc.getTeam();
-		RobotPlayer.ENEMY = rc.getTeam().opponent();
-		RobotPlayer.NEUTRAL = Team.NEUTRAL;
-		RobotPlayer.our_archons = rc.getInitialArchonLocations(FRIEND);
-		RobotPlayer.their_archons = rc.getInitialArchonLocations(ENEMY);
-		RobotPlayer.forward = new Direction(our_archons[0], their_archons[0]);
+        RobotPlayer.rc = rc; // Current robot controller
+		RobotPlayer.FRIEND = rc.getTeam(); 
+		RobotPlayer.ENEMY = rc.getTeam().opponent(); 
+		RobotPlayer.NEUTRAL = Team.NEUTRAL; 
+		RobotPlayer.our_archons = rc.getInitialArchonLocations(FRIEND); 
+		RobotPlayer.their_archons = rc.getInitialArchonLocations(ENEMY); 
+		RobotPlayer.forward = new Direction(our_archons[0], their_archons[0]); 
 		RobotPlayer.left = forward.rotateLeftDegrees(90);
 		RobotPlayer.backward = left.rotateLeftDegrees(90);
 		RobotPlayer.right = backward.rotateLeftDegrees(90);
@@ -60,60 +60,73 @@ public strictfp class RobotPlayer {
                 runGardener();
                 break;
             case SOLDIER:
-                runScout();
+                runCombatUnit();
                 break;
             /*case LUMBERJACK:
                 runLumberjack();
                 break;*/
 			case SCOUT:
-				runScout();
+				runCombatUnit();
 				break;
         }
 	}
 
     static void runArchon() throws GameActionException {
+
+		rc.broadcast(900, rc.readBroadcast(900) + 1); // Increment the number of archons our team has created
 		
-		rc.broadcast(900, rc.readBroadcast(900) + 1);
 		if(rc.readBroadcast(900) == 1){
+			// This is our first archon; initialize an enemy target for combat units to orient towards
 			int encode = (int)their_archons[0].x * 1000 + (int)their_archons[0].y;
 			rc.broadcast(500, encode);
 		}
+		
 		Direction rand = randomDirection();
-		int saved_target_id = -1;
+		int saved_target_id = -1; // The id of the last enemy seen
 		
         while (true) {
 			
             try {
-				//updateSurroundings();
-				findShakableTrees();
-				checkForStockpile();
+				// TODO: change updateSurroundings() to use less bytecodes
+				// updateSurroundings();
+				findShakableTrees(); // Find and shake most valuable tree
+				checkForStockpile(); // Check to see if we should donate
+				
 				if(rc.getRobotCount() > 40 || rc.getRoundNum() > 2800 || rc.getTeamBullets() > 10000 - 10 * rc.getTeamVictoryPoints()){
+					// If we have a big army, the game is sufficiently late, or we can immediately win, donate all our bullets
 					rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % 10));
 				}
 				
-				int data = rc.readBroadcast(500);
-				MapLocation last_seen = new MapLocation(data / 1000, data % 1000);
-				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY);
+				int data = rc.readBroadcast(500); // read location of enemy sighting
+				MapLocation last_seen = new MapLocation(data / 1000, data % 1000); // translate location of enemy sighting to a MapLocation
+				
+				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY); // find all nearby enemies
 				
 				if(enemies.length == 0){
+					// No enemies found
 					if(rc.getLocation().distanceTo(last_seen) < getSightRadius()){
+						// There was supposedly a robot sighting at last_seen, but this robot knows it's dead/gone, so update the last sighting to null
 						rc.broadcast(500, 0);
 						rc.broadcast(501, 0);
 					}
 				}
 				else{
+					// Enemies found, update last sighting to first enemy seen
 					int encode = (int) enemies[0].getLocation().x * 1000 + (int) enemies[0].getLocation().y;
 					rc.broadcast(500, encode);
 					if(enemies[0].getID() != saved_target_id){
+						// If this is actually a new enemy (i.e. we didn't see them last turn) then broadcast that help is required
 						saved_target_id = enemies[0].getID();
 						rc.broadcast(501, 0);
 					}
 				}
 				
-				
+				// Check all angles around us for potential build locations				
 				for(int i = 0; i < num_slices; i++){
 					Direction dir = absolute_right.rotateLeftRads(potential_angles[i]);
-					if(rc.canHireGardener(dir) && (rc.readBroadcast(904) >= 2 * rc.readBroadcast(901) - 3 || rc.getTeamBullets() > 200)){
+					if(rc.canHireGardener(dir) && (rc.readBroadcast(904) >= 2 * rc.readBroadcast(901) - 2 || rc.getTeamBullets() > 200)){
+						// We can hire a gardener, and we have a sufficiently big army to justify hiring gardeners
+						// Try to make sure hiring a gardener doesn't trap our archon
 						if(rc.getRoundNum() > 30){
 							rc.hireGardener(dir);
 						}
@@ -129,6 +142,7 @@ public strictfp class RobotPlayer {
 					}
 				}
 				
+				// Try to move in current direction; if it fails, find a new direction to move in
 				int trials = 0;
 				while(!rc.canMove(rand) && trials < 10){
 					rand = randomDirection();
@@ -148,49 +162,57 @@ public strictfp class RobotPlayer {
 
 	static void runGardener() throws GameActionException {
 		
-		rc.broadcast(901, rc.readBroadcast(901) + 1);
+		rc.broadcast(901, rc.readBroadcast(901) + 1); // Increment the number of gardeners our team has created
 
-		int spots_available = 0;
-		int saved_target_id = -1;
+		int spots_available = 0; // The number of places around our gardener we can build in
+		int saved_target_id = -1; // The ID of the last enemy we've seen
 
-        // The code you want your robot to perform every round should be in this loop
         while (true) {
 
-            // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
 				//updateSurroundings();
 				//findShakableTrees();
-				int data = rc.readBroadcast(500);
-				MapLocation last_seen = new MapLocation(data / 1000, data % 1000);
-				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY);
+				
+				int data = rc.readBroadcast(500); // read location of enemy sighting
+				MapLocation last_seen = new MapLocation(data / 1000, data % 1000); // translate location of enemy sighting to a MapLocation
+				
+				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY); // find all nearby enemies
 				
 				if(enemies.length == 0){
+					// No enemies found
 					if(rc.getLocation().distanceTo(last_seen) < getSightRadius()){
+						// There was supposedly a robot sighting at last_seen, but this robot knows it's dead/gone, so update the last sighting to null
 						rc.broadcast(500, 0);
+						rc.broadcast(501, 0);
 					}
 				}
 				else{
+					// Enemies found, update last sighting to first enemy seen
 					int encode = (int) enemies[0].getLocation().x * 1000 + (int) enemies[0].getLocation().y;
 					rc.broadcast(500, encode);
 					if(enemies[0].getID() != saved_target_id){
+						// If this is actually a new enemy (i.e. we didn't see them last turn) then broadcast that help is required
 						saved_target_id = enemies[0].getID();
 						rc.broadcast(501, 0);
 					}
 				}
 				
-				TreeInfo[] tree_list = rc.senseNearbyTrees(-1, rc.getTeam());
+				TreeInfo[] tree_list = rc.senseNearbyTrees(-1, rc.getTeam()); // Find all allied trees within range
 				if(tree_list.length > 0){
+					// Determine tree in range with least health
 					TreeInfo best = tree_list[0];
 					for(int i = 0; i < tree_list.length; i++){
 						if(tree_list[i].getHealth() < best.getHealth() && rc.canWater(tree_list[i].getLocation())){
 							best = tree_list[i];
 						}
 					}
+					// Water the tree in range with least health, if one exists
 					if(rc.canWater(best.getLocation())){
 						rc.water(best.getLocation());
 					}
 				}
 				
+				// Determine the number of available build spots				
 				spots_available = 0;
 				for(int i = 0; i < num_gardener_slices; i++){
 					Direction next_build = absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices);
@@ -203,7 +225,8 @@ public strictfp class RobotPlayer {
 				//System.out.println("There are " + spots_available + " spots available from " + rc.getLocation());
 				
 				if(spots_available > 1 && rc.getRoundNum() > 40 && rc.getTreeCount() < 3 * rc.readBroadcast(904)){
-					//System.out.println("Building tree...");
+					// Leave a location open to build combat units in, and don't build a tree if our army is weak
+					// System.out.println("Building tree...");
 					for(int i = 0; i < num_gardener_slices; i++){
 						if(rc.canPlantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices))){
 							rc.plantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices));
@@ -211,6 +234,7 @@ public strictfp class RobotPlayer {
 					}
 				}
 				else{
+					// Build either a soldier or a scout, depending on the makeup of our army and the game time
 					for(int i = 0; i < num_gardener_slices; i++){
 						if((rc.readBroadcast(903) < 20) && rc.canBuildRobot(RobotType.SOLDIER, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices)) && (rc.readBroadcast(903) < rc.readBroadcast(904) + 1 || rc.getRoundNum() > 400)){
 							rc.buildRobot(RobotType.SOLDIER, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices));
@@ -315,20 +339,24 @@ public strictfp class RobotPlayer {
         }
     }*/ 
 	
-	static void runScout() throws GameActionException{
+	static void runCombatUnit() throws GameActionException{
+		
+		// *** HANDLES BOTH SCOUT AND SOLDIER LOGIC ***
+		
 		if(rc.getType() == RobotType.SCOUT){
-			rc.broadcast(904, rc.readBroadcast(904) + 1);
+			rc.broadcast(904, rc.readBroadcast(904) + 1); // Increment the number of scouts we've created this game
 		}
 		else{
-			rc.broadcast(903, rc.readBroadcast(903) + 1);
+			rc.broadcast(903, rc.readBroadcast(903) + 1); // Increment the number of soldiers we've created this game
 		}
 		Direction rand = randomDirection();
-		MapLocation secondary_target = invalid_location;
-		int patience = 0;
+		MapLocation secondary_target = invalid_location; // A previous sighting that we will head towards if we don't personally see an enemy
 		RobotInfo target_robot = null;
 		int target_id = -1;
 		MapLocation target_loc = invalid_location;
 		int saved_target_id = -1;
+		int patience = 0; // Will only try to move towards a previous sighting for so long before we give up
+		int PATIENCE_LIMIT = 10; // Change to affect how long we focus on a sighting
 		
 		while(true) {
 			
@@ -338,37 +366,42 @@ public strictfp class RobotPlayer {
 				//System.out.println("After updating surroundings: " + Clock.getBytecodeNum());
 				findShakableTrees();
 				
-				System.out.println("My beginning-of-turn secondary target is... " + secondary_target);
+				//System.out.println("My beginning-of-turn secondary target is... " + secondary_target);
 				
 				if(isValidLoc(secondary_target)){
 					patience++;
-					if(rc.getLocation().distanceTo(secondary_target) < getSightRadius()){
+					if(rc.getLocation().distanceTo(secondary_target) < getSightRadius() - 2){
+						// We've reached previous sighting, update broadcast accordingly
 						rc.broadcast(500, 0);
+						rc.broadcast(501, 0);
 						secondary_target = invalid_location;
+						saved_target_id = -1;
 					}
-					if(patience == 40){
+					if(patience == PATIENCE_LIMIT){
+						// Spent too long trying to move towards sighting, conclude that path is too blocked and give up
 						secondary_target = invalid_location;
 						patience = 0;
+						saved_target_id = -1;
 					}
 				}
 				
 				int last_seen = rc.readBroadcast(500);
-				int responders = rc.readBroadcast(501);
+				int responders = rc.readBroadcast(501); 
 				
-				if(!isValidLoc(secondary_target) || (last_seen != 0 && patience >= 10)){
-					patience = 0;
+				if(!isValidLoc(secondary_target)){
+					// We aren't currently moving towards a target
 					if(last_seen != 0 && responders < 5){
-						rc.broadcast(501, rc.readBroadcast(501) + 1);
+						// Only send 5 units to each sighting. 
+						rc.broadcast(501, rc.readBroadcast(501) + 1); // Broadcast that unit is responding to sighting
 						secondary_target = new MapLocation(last_seen / 1000, last_seen % 1000);
 					}
 				}
 				
-				System.out.println("Now my secondary target is... " + secondary_target);
+				//System.out.println("Now my secondary target is... " + secondary_target);
 				
-				//System.out.println("Made it A");
-				
-				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY);
-				
+				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY); // Find nearby robots
+								
+				// Check to see if our current target is still alive/visible
 				boolean targetAlive = false;
 				for(int i = 0; i < enemies.length; i++){
 					if(enemies[i].getID() == target_id){
@@ -377,18 +410,17 @@ public strictfp class RobotPlayer {
 						target_robot = enemies[i];
 					}
 				}
-				
-				//System.out.println("Made it B");
-				
 				if(!targetAlive){
+					// Reset target
 					target_id = -1;
 					target_loc = invalid_location;
 					target_robot = null;
 				}
 				
-				System.out.println("My target has moved to " + target_loc);
+				//System.out.println("My target has moved to " + target_loc);
 				
 				if(enemies.length > 0){
+					// Find the highest priority enemy in range
 					RobotInfo best_robot;
 					if(target_id != -1){
 						best_robot = target_robot;
@@ -444,12 +476,15 @@ public strictfp class RobotPlayer {
 				}
 				
 				if(target_id != -1 && rc.getRoundNum() < 200){
+					// If the highest priority robot still isn't a priority in the early game, reset target
 					if(rc.getType() == RobotType.SCOUT && (target_robot.getType() == RobotType.ARCHON || target_robot.getType() == RobotType.SCOUT)){
+						// Too hard for scouts to hit scouts, takes too long for scouts to damage archons
 						target_id = -1;
 						target_loc = invalid_location;
 						target_robot = null;
 					}
 					if(rc.getType() == RobotType.SOLDIER && (target_robot.getType() == RobotType.ARCHON)){
+						// Takes too long to damage archons
 						target_id = -1;
 						target_loc = invalid_location;
 						target_robot = null;
@@ -457,17 +492,16 @@ public strictfp class RobotPlayer {
 				}
 				
 				if(target_id != -1){
+					// Target exists, broadcast sighting to team
 					int encode = (int)target_robot.getLocation().x * 1000 + (int)target_robot.getLocation().y;
 					rc.broadcast(500, encode);
 					if(target_id != saved_target_id){
-						rc.broadcast(501, 1);
+						rc.broadcast(501, 1); // This unit is responding already
 						saved_target_id = target_id;
 					}
 				}
 				
-				//System.out.println("Made it C");
-				
-				MapLocation target;
+				MapLocation target; // The location unit should head towards in order to shoot at enemy, assuming one exists
 				
 				if(target_id != -1){
 					target = getBestShootingLocation(target_robot);
@@ -481,17 +515,20 @@ public strictfp class RobotPlayer {
 				
 				//System.out.println("Made it D");
 				
-				System.out.println("I am at " + rc.getLocation());
-				System.out.println("I want to move to " + target);
+				//System.out.println("I am at " + rc.getLocation());
+				//System.out.println("I want to move to " + target);
 				
 				if(isValidLoc(target)){
-					System.out.println("Fortunately " + target + " is valid");
+					// Our move target is valid
+					//System.out.println("Fortunately " + target + " is valid");
 					//System.out.println("Target acquired... " + Clock.getBytecodeNum());
 					if(rc.canMove(target)){
-						System.out.println("I indeed can move to " + target);
+						// Unit can move towards its move target. Should be guaranteed but for some reason isn't (TODO?).
+						//System.out.println("I indeed can move to " + target);
 						rc.move(target);
-						System.out.println("I have now moved to " + rc.getLocation());
+						//System.out.println("I have now moved to " + rc.getLocation());
 						if(rc.getLocation().distanceTo(target) < 0.5 || (rc.getLocation().distanceTo(target) < 1.5 && rc.getType() == RobotType.SOLDIER)){
+							// If we got close enough to our move target, shoot at enemy with everything we've got
 							if(rc.canFirePentadShot()){
 								rc.firePentadShot(rc.getLocation().directionTo(target_loc));
 							}
@@ -504,12 +541,16 @@ public strictfp class RobotPlayer {
 						}
 					}
 					else{
-						System.out.println("But sadly, I cannot move to " + target);
+						// Unit cannot move towards its move target
+						//System.out.println("But sadly, I cannot move to " + target);
+						
+						// Try to move towards secondary target instead
 						if(isValidLoc(secondary_target) && rc.canMove(secondary_target)){
 							rc.move(secondary_target);
 							rand = randomDirection();
 						}
 						else{
+							// Move in current direction, update direction with a random one if impossible
 							int trials = 0;
 							while((!rc.canMove(rand) || willBeHit(rand)) && trials < 10){
 								rand = randomDirection();
@@ -522,8 +563,13 @@ public strictfp class RobotPlayer {
 					}
 				}
 				else{
+					// Our move target is invalid
+					
+					// Get tree lists
 					TreeInfo[] trees = rc.senseNearbyTrees(-1, NEUTRAL);
 					TreeInfo[] trees2 = rc.senseNearbyTrees(-1, ENEMY);
+					
+					// If game is late, clear out trees with bullets
 					if(rc.getRoundNum() > 1500 && (trees.length > 0 || trees2.length > 0)){
 						TreeInfo best;
 						if(trees.length > 0){
@@ -532,6 +578,7 @@ public strictfp class RobotPlayer {
 						else{
 							best = trees2[0];
 						}
+						// Get closest tree
 						for(int i = 0; i < trees.length; i++){
 							if(rc.getLocation().distanceTo(trees[i].getLocation()) < rc.getLocation().distanceTo(best.getLocation())){
 								best = trees[i];
@@ -543,6 +590,7 @@ public strictfp class RobotPlayer {
 							}
 						}
 						if(rc.canMove(best.getLocation())){
+							// Head towards closest tree and shoot it down
 							rc.move(best.getLocation());
 							if(rc.canFirePentadShot()){
 								rc.firePentadShot(rc.getLocation().directionTo(best.getLocation()));
@@ -555,6 +603,7 @@ public strictfp class RobotPlayer {
 							}
 						}
 						else{
+							// Move in current direction, update with random direction if impossible
 							int trials = 0;
 							while((!rc.canMove(rand) || willBeHit(rand)) && trials < 10){
 								rand = randomDirection();
@@ -566,6 +615,7 @@ public strictfp class RobotPlayer {
 						}
 					}
 					else if(!isValidLoc(target_loc) || rc.getType() == RobotType.SOLDIER){
+						// Game is not late, no trees found, no enemy found. Soldiers move in current direction/randomly
 						if(isValidLoc(secondary_target) && rc.canMove(secondary_target)){
 							rc.move(secondary_target);
 							rand = randomDirection();
@@ -582,11 +632,26 @@ public strictfp class RobotPlayer {
 						}
 					}
 					else{
+						// Game is not late, no trees found, but an enemy is found. Scouts try to move somewhere near the enemy
 						MapLocation to_move_to = invalid_location;
-						while(!rc.canMove(to_move_to)){
+						int target_trials = 0;
+						while(!rc.canMove(to_move_to) && target_trials < 10){
 							to_move_to = target_loc.add(randomDirection(), getSightRadius());
 						}
-						rc.move(to_move_to);
+						if(isValidLoc(to_move_to)){
+							rc.move(to_move_to);
+						}
+						else{
+							// Can't move near the enemy, give up and move in current direction/randomly
+							int trials = 0;
+							while((!rc.canMove(rand) || willBeHit(rand)) && trials < 10){
+								rand = randomDirection();
+								trials++;
+							}
+							if(rc.canMove(rand)){
+								rc.move(rand);
+							}
+						}
 					}
 				}
 				
@@ -601,6 +666,9 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Checks to see if team should donate bullets
+	 */	
 	static void checkForStockpile() throws GameActionException{
 		try{
 			if(rc.getRobotCount() > 40 || rc.getRoundNum() > 2800 || rc.getTeamBullets() > 10000 - 10 * rc.getTeamVictoryPoints()){
@@ -612,6 +680,11 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Check if given location is valid
+	 * @param loc The location to be checked
+	 * @return true if the location is valid
+	 */
 	static boolean isValidLoc(MapLocation loc){
 		if(loc.x == invalid_location.x && loc.y == invalid_location.y){
 			return false;
@@ -619,6 +692,9 @@ public strictfp class RobotPlayer {
 		return true;
 	}
 	
+	/**
+	 * Finds and shakes the most valuable tree in range
+	 */
 	static void findShakableTrees() throws GameActionException{
 		try{
 			//System.out.println("Finding shakable trees");
@@ -637,8 +713,8 @@ public strictfp class RobotPlayer {
 					}
 				}
 				if(rc.canShake(best.getLocation())){
-					//System.out.println("I am at " + rc.getLocation());
-					//System.out.println("Shaking tree at " + best.getLocation() + " to get " + best.getContainedBullets() + " bullets");
+					System.out.println("I am at " + rc.getLocation());
+					System.out.println("Shaking tree at " + best.getLocation() + " to get " + best.getContainedBullets() + " bullets");
 					rc.shake(best.getLocation());
 				}
 			}
@@ -648,6 +724,9 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Updates enemy locations. TOO EXPENSIVE. TODO: FIX
+	 */
 	static void updateSurroundings() throws GameActionException{
 		// TODO: Make more efficient, uses too many bytecodes		
 		
@@ -719,6 +798,9 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Gets closest target to the robot, based off of broadcasted positions. DEPENDS ON BROADCAST SYSTEM WORKING. TODO: FIX
+	 */	
 	static MapLocation getClosestTarget() throws GameActionException{
 		try{
 			MapLocation current_closest = invalid_location;
@@ -737,6 +819,11 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Gets the best location to shoot at a target enemy. Attempts to dodge bullets in the process.
+	 * @param target_robot The enemy being targeted
+	 * @return best The best location to shoot at enemy from, or invalid_location if none exists.
+	 */
 	static MapLocation getBestShootingLocation(RobotInfo target_robot) throws GameActionException{
 		try{
 			//System.out.println("Calculating best shooting location... " + Clock.getBytecodeNum());
@@ -748,6 +835,8 @@ public strictfp class RobotPlayer {
 			Direction vect_to_me = new Direction(target, rc.getLocation());
 			float cur_angle = (float)absolute_right.radiansBetween(vect_to_me);*/
 			
+			
+			// Determine how far away our robot wants to be from the enemy. Scouts want to kite, soldiers dgaf
 			float look_distance = 0;
 			if(rc.getType() == RobotType.SCOUT){
 				if(target_robot.getType() == RobotType.GARDENER){
@@ -770,6 +859,7 @@ public strictfp class RobotPlayer {
 				look_distance = (float) 3.05;
 			}
 			
+			// Initialize angles to be checked for clear lines
 			boolean[] clear_angles = new boolean[num_slices];
 			for(int i = 0; i < num_slices; i++){
 				clear_angles[i] = true;
@@ -777,17 +867,22 @@ public strictfp class RobotPlayer {
 			
 			//System.out.println("Initialized clear angles... " + Clock.getBytecodeNum());
 			
+			// Check which angles are blocked by robots
 			for(int i = 0; i < robots.length; i++){
 				if(target.distanceTo(robots[i].getLocation()) > look_distance){
+					// Robot is too far way, won't block our shot
 					continue;
 				}
 				if(target.distanceTo(robots[i].getLocation()) < 0.5){
+					// Robot can't block itself
 					continue;
 				}
 				//System.out.println("Finding clear angles around robot " + i + "... " + Clock.getBytecodeNum());
+				
+				// Get the minimum and maximum angle that this robot blocks
 				Direction vect = new Direction(target, robots[i].getLocation());
 				float dist = (float)target.distanceTo(robots[i].getLocation());
-				float spread = (float)Math.asin(robots[i].getRadius()/dist);
+				float spread = (float)Math.asin(robots[i].getRadius()/dist); 
 				if(spread < 0){
 					spread = 2 * (float) Math.PI + spread;
 				}
@@ -798,6 +893,8 @@ public strictfp class RobotPlayer {
 				//System.out.println("Calculated angles around robot " + i + ", updating potential_angles... " + Clock.getBytecodeNum());
 				for(int j = 0; j < num_slices; j++){
 					//System.out.println("Updating angle " + j + "... " + Clock.getBytecodeNum());
+					
+					// Check if potential angle is blocked by robot
 					if(center_angle - spread - 0.1 < potential_angles[j] && potential_angles[j] < center_angle + spread + 0.1){
 						clear_angles[j] = false;
 					}
@@ -811,8 +908,10 @@ public strictfp class RobotPlayer {
 			
 			for(int i = 0; i < trees.length; i++){
 				if(target.distanceTo(trees[i].getLocation()) > look_distance || (target_robot.getType() == RobotType.GARDENER && rc.getType() == RobotType.SCOUT)){
+					// Tree is either too far away, or we're a scout targeting a gardener in which case trees are irrelevant
 					continue;
 				}
+				// Get the minimum and maximum angle that this tree blocks
 				Direction vect = new Direction(target, trees[i].getLocation());
 				float dist = (float)target.distanceTo(trees[i].getLocation());
 				float spread = (float)Math.asin(trees[i].getRadius()/dist);
@@ -825,6 +924,7 @@ public strictfp class RobotPlayer {
 				}
 				//System.out.println("Target is at " + target + " protected by tree at " + trees[i].getLocation() + " for angles " + center_angle + " " + spread);
 				for(int j = 0; j < num_slices; j++){
+					// Check if potential angle is blocked by tree
 					if(center_angle - spread - 0.1 < potential_angles[j] && potential_angles[j] < center_angle + spread + 0.1){
 						clear_angles[j] = false;
 					}
@@ -844,18 +944,30 @@ public strictfp class RobotPlayer {
 			
 			for(int i = 0; i < num_slices; i++){
 				if(!clear_angles[i]){
+					// Angle is blocked
 					continue;
 				}
+				// Translate angle into a location
 				Direction potential_dir = absolute_right.rotateLeftRads(potential_angles[i]);
 				MapLocation potential_shooting_loc = target.add(potential_dir, look_distance);
 				if(rc.canMove(potential_shooting_loc)){
+					// Location is valid, check if moving there will result in getting hit by a bullet
 					boolean will_add = true;
 					for(int j = 0; j < bullets.length; j++){
 						if(willCollideWithLoc(rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), (float)Math.min(2.5, rc.getLocation().distanceTo(potential_shooting_loc))), bullets[j])){
 							will_add = false;
 						}
 					}
+					// Check if moving there will result in being too close to a lumberjack
+					for(int j = 0; j < robots.length; j++){
+						if(robots[j].getType() == RobotType.LUMBERJACK){
+							if(potential_shooting_loc.distanceTo(robots[j].getLocation()) < 3.55){
+								will_add = false;
+							}
+						}
+					}
 					if(will_add){
+						// Can safely move to location
 						potential_loc.add(potential_shooting_loc);
 					}
 				}
@@ -864,10 +976,12 @@ public strictfp class RobotPlayer {
 			//System.out.println("Calculated potential shooting spots... " + Clock.getBytecodeNum());
 			
 			if(potential_loc.size() == 0){
+				// No good shooting locations
 				//System.out.println("No shooting location found, " + Clock.getBytecodeNum());
 				return invalid_location;
 			}
 			else{
+				// Get closest shooting location
 				MapLocation best = potential_loc.get(0);
 				for(int i = 0; i < potential_loc.size(); i++){
 					if(rc.getLocation().distanceTo(potential_loc.get(i)) < rc.getLocation().distanceTo(best)){
@@ -884,6 +998,10 @@ public strictfp class RobotPlayer {
 		}
 	}
 	
+	/**
+	 * Gets the sight radius of current robot
+	 * @return The sight radius of current robot
+	 */
 	static float getSightRadius(){
 		switch(rc.getType()){
 			case ARCHON:
@@ -901,6 +1019,12 @@ public strictfp class RobotPlayer {
 		}
 		return 0;
 	}
+	
+	/**
+	 * Determine whether moving in a given direction will result in being hit by a bullet
+	 * @param dir The direction to move in
+	 * @return true If moving in that direction will result in being hit by a bullet
+	 */
 	
 	static boolean willBeHit(Direction dir) throws GameActionException{
 		try{
@@ -981,16 +1105,17 @@ public strictfp class RobotPlayer {
     }
 
     /**
-     * A slightly more complicated example function, this returns true if the given bullet is on a collision
-     * course with the current robot. Doesn't take into account objects between the bullet and this robot.
+     * Checks if a given location is in danger of being hit by a bullet
      *
      * @param bullet The bullet in question
-     * @return True if the line of the bullet's path intersects with this robot's current position.
+	 * @param loc The location to be checked
+     * @return True if the line of the bullet's path intersects with given location.
      */
     static boolean willCollideWithLoc(MapLocation loc, BulletInfo bullet) {
         MapLocation myLocation = loc;
 		
 		if(myLocation.distanceTo(bullet.location) >= 6){ 
+			// Bullet is too far away, no need to bother with it now
 			return false;
 		}
 
