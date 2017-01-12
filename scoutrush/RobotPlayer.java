@@ -3,7 +3,8 @@ import battlecode.common.*;
 import java.util.*;
 
 public strictfp class RobotPlayer {
-	final static int num_slices = 20;
+	final static int num_slices = 10;
+	final static int num_gardener_slices = 36;
     static RobotController rc;
 	static Team FRIEND;
 	static Team ENEMY;
@@ -73,19 +74,36 @@ public strictfp class RobotPlayer {
     static void runArchon() throws GameActionException {
 		
 		rc.broadcast(900, rc.readBroadcast(900) + 1);
+		if(rc.readBroadcast(900) == 1){
+			int encode = (int)their_archons[0].x * 1000 + (int)their_archons[0].y;
+			rc.broadcast(500, encode);
+		}
 		Direction rand = randomDirection();
 
         while (true) {
 			
             try {
-				updateSurroundings();
+				//updateSurroundings();
 				findShakableTrees();
 				checkForStockpile();
+				if(rc.getRobotCount() > 40 || rc.getRoundNum() > 2800 || rc.getTeamBullets() > 10000 - 10 * rc.getTeamVictoryPoints()){
+					rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % 10));
+				}
 				
 				for(int i = 0; i < num_slices; i++){
 					Direction dir = absolute_right.rotateLeftRads(potential_angles[i]);
 					if(rc.canHireGardener(dir) && (rc.readBroadcast(904) >= 2 * rc.readBroadcast(901) - 3 || rc.getTeamBullets() > 200)){
-						rc.hireGardener(dir);
+						if(rc.getRoundNum() > 30){
+							rc.hireGardener(dir);
+						}
+						else if(rc.canMove(dir.rotateLeftDegrees(90))){
+							rc.hireGardener(dir);
+							rc.move(dir.rotateLeftDegrees(90));
+						}
+						else if(rc.canMove(dir.rotateRightDegrees(90))){
+							rc.hireGardener(dir);
+							rc.move(dir.rotateRightDegrees(90));
+						}
 						break;
 					}
 				}
@@ -122,29 +140,29 @@ public strictfp class RobotPlayer {
 				//findShakableTrees();
 				
 				spots_available = 0;
-				for(int i = 0; i < num_slices; i++){
-					Direction next_build = absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices);
+				for(int i = 0; i < num_gardener_slices; i++){
+					Direction next_build = absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices);
 					//System.out.println("Checking location... " + rc.getLocation().add(next_build,2) + " from " + rc.getLocation());
-					if(!rc.isCircleOccupied(rc.getLocation().add(next_build,2), 1)){
+					if(rc.canMove(next_build, 2)){
 						spots_available++;
 					}
 				}
 				
 				//System.out.println("There are " + spots_available + " spots available from " + rc.getLocation());
 				
-				if(spots_available > 1 && rc.getRoundNum() > 40){
+				if(spots_available > 1 && rc.getRoundNum() > 40 && rc.getTreeCount() < 3 * rc.readBroadcast(904)){
 					//System.out.println("Building tree...");
-					for(int i = 0; i < num_slices; i++){
-						if(rc.canPlantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices))){
-							rc.plantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices));
+					for(int i = 0; i < num_gardener_slices; i++){
+						if(rc.canPlantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices))){
+							rc.plantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices));
 						}
 					}
 				}
 				else{
-					for(int i = 0; i < num_slices; i++){
-						if((rc.readBroadcast(904) < 20) && rc.canBuildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices))){
+					for(int i = 0; i < num_gardener_slices; i++){
+						if((rc.readBroadcast(904) < 20) && rc.canBuildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices))){
 							//System.out.println("Building scout...");
-							rc.buildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices));
+							rc.buildRobot(RobotType.SCOUT, absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices));
 						}
 					}
 				}
@@ -259,6 +277,7 @@ public strictfp class RobotPlayer {
 		
 		rc.broadcast(904, rc.readBroadcast(904) + 1);
 		Direction rand = randomDirection();
+		MapLocation secondary_target = invalid_location;
 		RobotInfo target_robot = null;
 		int target_id = -1;
 		MapLocation target_loc = invalid_location;
@@ -271,6 +290,24 @@ public strictfp class RobotPlayer {
 				//System.out.println("After updating surroundings: " + Clock.getBytecodeNum());
 				findShakableTrees();
 				
+				if(isValidLoc(secondary_target)){
+					if(rc.getLocation().distanceTo(secondary_target) < getSightRadius()){
+						rc.broadcast(500, 0);
+						secondary_target = invalid_location;
+					}
+				}
+				
+				if(!isValidLoc(secondary_target)){
+					int last_seen = rc.readBroadcast(500);
+					if(last_seen != 0){
+						secondary_target = new MapLocation(last_seen / 1000, last_seen % 1000);
+						if(rc.getLocation().distanceTo(secondary_target) < getSightRadius()){
+							rc.broadcast(500, 0);
+							secondary_target = invalid_location;
+						}
+					}
+				}
+				
 				//System.out.println("Made it A");
 				
 				RobotInfo[] enemies = rc.senseNearbyRobots(-1, ENEMY);
@@ -280,6 +317,7 @@ public strictfp class RobotPlayer {
 					if(enemies[i].getID() == target_id){
 						targetAlive = true;
 						target_loc = enemies[i].getLocation();
+						target_robot = enemies[i];
 					}
 				}
 				
@@ -288,84 +326,122 @@ public strictfp class RobotPlayer {
 				if(!targetAlive){
 					target_id = -1;
 					target_loc = invalid_location;
+					target_robot = null;
 				}
 				
-				if(target_id == -1){
-					if(enemies.length > 0){
-						int priority = -1;
-						for(int i = 0; i < enemies.length; i++){
-							if(priority == -1){
-								priority = i;
-							}
-							if(enemies[priority].getType() != RobotType.GARDENER && enemies[i].getType() == RobotType.GARDENER){
-								priority = i;
-								break;
-							}
-							else if(enemies[priority].getType() != RobotType.SOLDIER && enemies[i].getType() == RobotType.SOLDIER){
-								priority = i;
-								break;
-							}
-							else if(enemies[priority].getType() != RobotType.LUMBERJACK && enemies[i].getType() == RobotType.LUMBERJACK){
-								priority = i;
-								break;
-							}
-							else if(enemies[priority].getType() != RobotType.ARCHON && enemies[i].getType() == RobotType.ARCHON){
-								priority = i;
-								break;
+				System.out.println("My target has moved to " + target_loc);
+				
+				if(enemies.length > 0){
+					RobotInfo best_robot;
+					if(target_id != -1){
+						best_robot = target_robot;
+					}
+					else{
+						best_robot = enemies[0];
+					}
+					for(int i = 0; i < enemies.length; i++){
+						if(best_robot.getType() == enemies[i].getType()){
+							if(enemies[i].getHealth() < best_robot.getHealth()){
+								best_robot = enemies[i];
 							}
 						}
-						if(priority != -1){
-							target_robot = enemies[priority];
-							target_id = enemies[priority].getID();
-							target_loc = enemies[priority].getLocation();
+						else if(best_robot.getType() != RobotType.GARDENER && enemies[i].getType() == RobotType.GARDENER){
+							best_robot = enemies[i];
+						}
+						else if(best_robot.getType() != RobotType.SOLDIER && enemies[i].getType() == RobotType.SOLDIER){
+							best_robot = enemies[i];
+						}
+						else if(best_robot.getType() != RobotType.LUMBERJACK && enemies[i].getType() == RobotType.LUMBERJACK){
+							best_robot = enemies[i];
+						}
+						else if(best_robot.getType() != RobotType.ARCHON && enemies[i].getType() == RobotType.ARCHON){
+							best_robot = enemies[i];
 						}
 					}
+					target_robot = best_robot;
+					target_id = target_robot.getID();
+					target_loc = target_robot.getLocation();
+				}
+				
+				if(target_id != -1 && (target_robot.getType() == RobotType.ARCHON || target_robot.getType() == RobotType.SCOUT)){
+					if(rc.getRoundNum() < 200){
+						target_id = -1;
+						target_loc = invalid_location;
+						target_robot = null;
+					}
+				}
+				
+				if(target_id != -1){
+					int encode = (int)target_robot.getLocation().x * 1000 + (int)target_robot.getLocation().y;
+					rc.broadcast(500, encode);
 				}
 				
 				//System.out.println("Made it C");
 				
 				MapLocation target;
 				
-				if(isValidLoc(target_loc)){
+				if(target_id != -1){
 					target = getBestShootingLocation(target_robot);
 				}
 				else{
 					target = invalid_location;
 				}
-				if(rc.getRoundNum() > 100 && rc.getRoundNum() < 150 && target_id != -1){
+				/*if(rc.getRoundNum() > 100 && rc.getRoundNum() < 150 && target_id != -1){
 					System.out.println(rc.getLocation() + " " + target_robot.getType() + " " + target);
-				}
+				}*/
 				
 				//System.out.println("Made it D");
 				
+				System.out.println("I am at " + rc.getLocation());
+				System.out.println("I want to move to " + target);
+				
 				if(isValidLoc(target)){
+					System.out.println("Fortunately " + target + " is valid");
 					//System.out.println("Target acquired... " + Clock.getBytecodeNum());
 					if(rc.canMove(target)){
+						System.out.println("I indeed can move to " + target);
 						rc.move(target);
+						System.out.println("I have now moved to " + rc.getLocation());
 						if(rc.canFireSingleShot()){
-							rc.fireSingleShot(rc.getLocation().directionTo(target_loc));
+							if(rc.getLocation().distanceTo(target) < 0.5){
+								System.out.println("I am shooting towards " + target_loc);
+								rc.fireSingleShot(rc.getLocation().directionTo(target_loc));
+							}
 						}
 					}
 					else{
-						int trials = 0;
-						while(!rc.canMove(rand) && trials < 10){
+						System.out.println("But sadly, I cannot move to " + target);
+						if(isValidLoc(secondary_target) && rc.canMove(secondary_target)){
+							rc.move(secondary_target);
 							rand = randomDirection();
-							trials++;
 						}
-						if(rc.canMove(rand)){
-							rc.move(rand);
+						else{
+							int trials = 0;
+							while((!rc.canMove(rand) || willBeHit(rand)) && trials < 10){
+								rand = randomDirection();
+								trials++;
+							}
+							if(rc.canMove(rand)){
+								rc.move(rand);
+							}
 						}
 					}
 				}
 				else{
 					if(!isValidLoc(target_loc)){
-						int trials = 0;
-						while(!rc.canMove(rand) && trials < 10){
+						if(isValidLoc(secondary_target) && rc.canMove(secondary_target)){
+							rc.move(secondary_target);
 							rand = randomDirection();
-							trials++;
 						}
-						if(rc.canMove(rand)){
-							rc.move(rand);
+						else{
+							int trials = 0;
+							while((!rc.canMove(rand) || willBeHit(rand)) && trials < 10){
+								rand = randomDirection();
+								trials++;
+							}
+							if(rc.canMove(rand)){
+								rc.move(rand);
+							}
 						}
 					}
 					else{
@@ -530,6 +606,21 @@ public strictfp class RobotPlayer {
 			MapLocation target = target_robot.getLocation();
 			RobotInfo[] robots = rc.senseNearbyRobots();
 			TreeInfo[] trees = rc.senseNearbyTrees();
+			BulletInfo[] bullets = rc.senseNearbyBullets();
+			/*boolean needs_to_move = false;
+			Direction vect_to_me = new Direction(target, rc.getLocation());
+			float cur_angle = (float)absolute_right.radiansBetween(vect_to_me);*/
+			
+			float look_distance = 0;
+			if(target_robot.getType() == RobotType.GARDENER){
+				look_distance = (float)2.05;
+			}
+			else if(target_robot.getType() == RobotType.ARCHON){
+				look_distance = (float)3.05;
+			}
+			else{
+				look_distance = getSightRadius();
+			}
 			
 			boolean[] clear_angles = new boolean[num_slices];
 			for(int i = 0; i < num_slices; i++){
@@ -539,7 +630,10 @@ public strictfp class RobotPlayer {
 			//System.out.println("Initialized clear angles... " + Clock.getBytecodeNum());
 			
 			for(int i = 0; i < robots.length; i++){
-				if(target.distanceTo(robots[i].getLocation()) < getSightRadius()){
+				if(target.distanceTo(robots[i].getLocation()) > look_distance){
+					continue;
+				}
+				if(target.distanceTo(robots[i].getLocation()) < 0.5){
 					continue;
 				}
 				//System.out.println("Finding clear angles around robot " + i + "... " + Clock.getBytecodeNum());
@@ -556,16 +650,19 @@ public strictfp class RobotPlayer {
 				//System.out.println("Calculated angles around robot " + i + ", updating potential_angles... " + Clock.getBytecodeNum());
 				for(int j = 0; j < num_slices; j++){
 					//System.out.println("Updating angle " + j + "... " + Clock.getBytecodeNum());
-					if(center_angle - spread < potential_angles[j] && potential_angles[j] < center_angle + spread){
+					if(center_angle - spread - 0.1 < potential_angles[j] && potential_angles[j] < center_angle + spread + 0.1){
 						clear_angles[j] = false;
 					}
+					/*if(center_angle - spread < cur_angle && cur_angle < center_angle + spread){
+						needs_to_move = true;
+					}*/
 				}
 			}
 			
 			//System.out.println("Calculated angles not blocked by robots... " + Clock.getBytecodeNum());
 			
 			for(int i = 0; i < trees.length; i++){
-				if(target.distanceTo(trees[i].getLocation()) < getSightRadius()){
+				if(target.distanceTo(trees[i].getLocation()) > look_distance || target_robot.getType() == RobotType.GARDENER){
 					continue;
 				}
 				Direction vect = new Direction(target, trees[i].getLocation());
@@ -583,8 +680,15 @@ public strictfp class RobotPlayer {
 					if(center_angle - spread - 0.1 < potential_angles[j] && potential_angles[j] < center_angle + spread + 0.1){
 						clear_angles[j] = false;
 					}
+					/*if(center_angle - spread < cur_angle && cur_angle < center_angle + spread){
+						needs_to_move = true;
+					}*/
 				}
 			}
+			
+			/*if(!needs_to_move){
+				return rc.getLocation();
+			}*/
 			
 			//System.out.println("Calculated angles not blocked by trees... " + Clock.getBytecodeNum());
 			
@@ -595,15 +699,18 @@ public strictfp class RobotPlayer {
 					continue;
 				}
 				Direction potential_dir = absolute_right.rotateLeftRads(potential_angles[i]);
-				float dist = 0;
-				if(target_robot.getType() == RobotType.GARDENER || target_robot.getType() == RobotType.ARCHON){
-					dist = 2;
+				MapLocation potential_shooting_loc = target.add(potential_dir, look_distance);
+				if(rc.canMove(potential_shooting_loc)){
+					boolean will_add = true;
+					for(int j = 0; j < bullets.length; j++){
+						if(willCollideWithLoc(rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), (float)Math.min(2.5, rc.getLocation().distanceTo(potential_shooting_loc))), bullets[j])){
+							will_add = false;
+						}
+					}
+					if(will_add){
+						potential_loc.add(potential_shooting_loc);
+					}
 				}
-				else{
-					dist = getSightRadius();
-				}
-				MapLocation potential_shooting_loc = target.add(potential_dir, dist);
-				potential_loc.add(potential_shooting_loc);
 			}
 			
 			//System.out.println("Calculated potential shooting spots... " + Clock.getBytecodeNum());
@@ -645,6 +752,23 @@ public strictfp class RobotPlayer {
 				return (float)7.0;
 		}
 		return 0;
+	}
+	
+	static boolean willBeHit(Direction dir) throws GameActionException{
+		try{
+			BulletInfo[] bullets = rc.senseNearbyBullets();
+			MapLocation next_location = rc.getLocation().add(dir);
+			for(int i = 0; i < bullets.length; i++){
+				if(willCollideWithLoc(next_location, bullets[i])){
+					return true;
+				}
+			}
+			return false;
+		}catch(Exception e){
+			System.out.println("willBeHit() error");
+			e.printStackTrace();
+			return false;
+		}
 	}
 	
 
@@ -715,8 +839,12 @@ public strictfp class RobotPlayer {
      * @param bullet The bullet in question
      * @return True if the line of the bullet's path intersects with this robot's current position.
      */
-    static boolean willCollideWithMe(BulletInfo bullet) {
-        MapLocation myLocation = rc.getLocation();
+    static boolean willCollideWithLoc(MapLocation loc, BulletInfo bullet) {
+        MapLocation myLocation = loc;
+		
+		if(myLocation.distanceTo(bullet.location) >= 6){ 
+			return false;
+		}
 
         // Get relevant bullet information
         Direction propagationDirection = bullet.dir;
