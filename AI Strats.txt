@@ -2,6 +2,7 @@ GENERAL STRATEGIES FOR AI TO FOLLOW
 
 == Resource Management ==
 * Cash in bullets at end of game
+* If player can win immediately by cashing in bullets, do so
 
 == Map Awareness ==
 * Should be able to construct map of area disregarding units
