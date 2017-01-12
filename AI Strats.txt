@@ -1,0 +1,11 @@
+GENERAL STRATEGIES FOR AI TO FOLLOW
+
+== Resource Management ==
+* Cash in bullets at end of game
+
+== Map Awareness ==
+* Should be able to construct map of area disregarding units
+
+== Combat ==
+* No more than 10 scouts attacking one target
+* Each attacking unit should have at very least modes EXPLORE and ATTACK which determine whether or not unit attacks enemy units it sees
