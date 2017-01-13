@@ -79,6 +79,7 @@ public strictfp class RobotPlayer {
 			// This is our first archon; initialize an enemy target for combat units to orient towards
 			int encode = (int)their_archons[0].x * 1000 + (int)their_archons[0].y;
 			rc.broadcast(500, encode);
+			rc.broadcast(502, 1);
 		}
 		
 		Direction rand = randomDirection();
@@ -108,12 +109,14 @@ public strictfp class RobotPlayer {
 						// There was supposedly a robot sighting at last_seen, but this robot knows it's dead/gone, so update the last sighting to null
 						rc.broadcast(500, 0);
 						rc.broadcast(501, 0);
+						rc.broadcast(502, 0);
 					}
 				}
 				else{
 					// Enemies found, update last sighting to first enemy seen
 					int encode = (int) enemies[0].getLocation().x * 1000 + (int) enemies[0].getLocation().y;
 					rc.broadcast(500, encode);
+					rc.broadcast(502, RobotTypeToInt(enemies[0].getType()));
 					if(enemies[0].getID() != saved_target_id){
 						// If this is actually a new enemy (i.e. we didn't see them last turn) then broadcast that help is required
 						saved_target_id = enemies[0].getID();
@@ -184,12 +187,14 @@ public strictfp class RobotPlayer {
 						// There was supposedly a robot sighting at last_seen, but this robot knows it's dead/gone, so update the last sighting to null
 						rc.broadcast(500, 0);
 						rc.broadcast(501, 0);
+						rc.broadcast(502, 0);
 					}
 				}
 				else{
 					// Enemies found, update last sighting to first enemy seen
 					int encode = (int) enemies[0].getLocation().x * 1000 + (int) enemies[0].getLocation().y;
 					rc.broadcast(500, encode);
+					rc.broadcast(502, RobotTypeToInt(enemies[0].getType()));
 					if(enemies[0].getID() != saved_target_id){
 						// If this is actually a new enemy (i.e. we didn't see them last turn) then broadcast that help is required
 						saved_target_id = enemies[0].getID();
@@ -357,6 +362,7 @@ public strictfp class RobotPlayer {
 		int saved_target_id = -1;
 		int patience = 0; // Will only try to move towards a previous sighting for so long before we give up
 		int PATIENCE_LIMIT = 10; // Change to affect how long we focus on a sighting
+		boolean has_crossed_midline = false;
 		
 		while(true) {
 			
@@ -374,6 +380,7 @@ public strictfp class RobotPlayer {
 						// We've reached previous sighting, update broadcast accordingly
 						rc.broadcast(500, 0);
 						rc.broadcast(501, 0);
+						rc.broadcast(502, 0);
 						secondary_target = invalid_location;
 						saved_target_id = -1;
 					}
@@ -386,14 +393,18 @@ public strictfp class RobotPlayer {
 				}
 				
 				int last_seen = rc.readBroadcast(500);
-				int responders = rc.readBroadcast(501); 
+				int responders = rc.readBroadcast(501);
+				int last_type = rc.readBroadcast(502);
 				
 				if(!isValidLoc(secondary_target)){
 					// We aren't currently moving towards a target
 					if(last_seen != 0 && responders < 5){
-						// Only send 5 units to each sighting. 
-						rc.broadcast(501, rc.readBroadcast(501) + 1); // Broadcast that unit is responding to sighting
-						secondary_target = new MapLocation(last_seen / 1000, last_seen % 1000);
+						// Only send 5 units to each sighting
+						if(rc.getRoundNum() > 500 || (rc.getType() == RobotType.SCOUT && last_type != 4) || (rc.getType() == RobotType.SOLDIER && last_type != 2)){
+							// Scouts don't respond to scouts early game, nor soldiers to gardeners
+							rc.broadcast(501, rc.readBroadcast(501) + 1); // Broadcast that unit is responding to sighting
+							secondary_target = new MapLocation(last_seen / 1000, last_seen % 1000);
+						}
 					}
 				}
 				
@@ -495,6 +506,7 @@ public strictfp class RobotPlayer {
 					// Target exists, broadcast sighting to team
 					int encode = (int)target_robot.getLocation().x * 1000 + (int)target_robot.getLocation().y;
 					rc.broadcast(500, encode);
+					rc.broadcast(502, RobotTypeToInt(target_robot.getType()));
 					if(target_id != saved_target_id){
 						rc.broadcast(501, 1); // This unit is responding already
 						saved_target_id = target_id;
@@ -664,6 +676,25 @@ public strictfp class RobotPlayer {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	static int RobotTypeToInt(RobotType r){
+		if(r == RobotType.ARCHON){
+			return 1;
+		}
+		if(r == RobotType.GARDENER){
+			return 2;
+		}
+		if(r == RobotType.SOLDIER){
+			return 3;
+		}
+		if(r == RobotType.SCOUT){
+			return 4;
+		}
+		if(r == RobotType.LUMBERJACK){
+			return 5;
+		}
+		return 0;
 	}
 	
 	/**
