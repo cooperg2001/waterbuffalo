@@ -14,3 +14,5 @@ According to google (since this is a common game problem) the "Boids algorithms"
 4 (MEDIUM PRIORITY) (LOW-MEDIUM EFFORT). Update initial secondary targets more intelligently -- currently seeds initial secondary target with starting location of enemy archon. Change to something more intelligent; e.g. simple improvement would be to use closest starting location of enemy archon rather than just the first.
 
 5 (MEDIUM-HIGH PRIORITY) (LOW-MEDIUM EFFORT). Update robot counts to consist of *alive* robots rather than *created* robots. Current version stores number of *created* units of a given type in 901-906; causes issues when gardener dies as these values are checked to determine if army needs a gardener etc. Idea: at end of turn (just before yield), each robot broadcasts its ID, and archons use their turn collating the information (as # of archons isn't used for anything and archons have double computation space).
+
+6 (MEDIUM-HIGH PRIORITY) (HIGH EFFORT). Our code for dealing with lumberjacks sucks.
