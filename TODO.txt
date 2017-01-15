@@ -1,0 +1,14 @@
+1 (HIGH PRIORITY). Update broadcasting system. Currently keeps track of last seen enemy location (at 500) and last seen enemy type (at 501). 
+Short term (LOW EFFORT): alter to keep track of the last seen location of each specific type (i.e. keep track of last seen archon/scout/soldier/...).
+Long term (HIGH EFFORT): alter to do more complex things like build a map. Possible example: split the map into 10 x 10 squares, within each square keep track of what's in it, use this to improve the getBestLocation function. See http://imgur.com/QE04nKO for example from another team.
+
+2 (MEDIUM PRIORITY) (HIGH EFFORT). Update bullet dodging system. Currently calculates a normal vector to each bullet and tries to move towards their sum. Has some issues with two bullets coming like below:
+
+ O
+| |
+
+According to google (since this is a common game problem) the "Boids algorithms" are useful for this. I haven't looked at what they are however, so they might be too expensive.
+
+3 (LOW PRIORITY) (HIGH EFFORT). Update getBestShootingLocation to be more efficient; currently sometimes uses too many bytecodes when there's a lot of bullets (as it checks locations x bullets which can be fairly large), so cuts off when it hits 8000 to leave room for actually moving. Any other algorithm suggestions would be appreciated as I have very few good ideas.
+
+4 (MEDIUM PRIORITY) (LOW-MEDIUM EFFORT). Update initial secondary targets more intelligently -- currently seeds initial secondary target with starting location of enemy archon. Change to something more intelligent; e.g. simple improvement would be to use closest starting location of enemy archon rather than just the first.
