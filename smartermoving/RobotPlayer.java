@@ -615,6 +615,9 @@ public strictfp class RobotPlayer {
 			boolean will_add_step = true;
 			boolean will_add_small_step = true;
 			for(int j = 0; j < bullets.length; j++){
+				if(Clock.getBytecodeNum() > 8000){
+					return INVALID_LOCATION;
+				}
 				if(CircleIntersectsLine(step_towards_shooting_loc, rc.getType().bodyRadius + (float)0.02, bullets[j].getLocation(), bullets[j].getLocation().add(bullets[j].getDir(), bullets[j].getSpeed()))){
 					will_add_step = false;
 				}
