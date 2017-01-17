@@ -44,25 +44,40 @@ public class Gardener {
 
                 // Determine the number of available build spots
                 spots_available = 0;
-                int num_gardener_slices = 6;
-                for(int i = 0; i < num_gardener_slices; i++){
-                    Direction next_build = RobotPlayer.absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_gardener_slices);
-                    //System.out.println("Checking location... " + rc.getLocation().add(next_build,2) + " from " + rc.getLocation());
-                    if(rc.canMove(next_build, 2)){
-                        spots_available++;
-                    }
-                }
+				boolean should_build_tree = false;
+				boolean[] occupied = new boolean[RobotPlayer.num_angles];
+				for(int i = 0; i < RobotPlayer.num_angles; i++){
+					occupied[i] = false;
+				}
+				for(int i = 0; i < RobotPlayer.num_angles; i++){
+					Direction next_build = RobotPlayer.backward.rotateLeftRads(i * 2 * (float)Math.PI/RobotPlayer.num_angles);
+					//System.out.println("Checking location... " + rc.getLocation().add(next_build,2) + " from " + rc.getLocation());
+					if(!rc.canMove(next_build, 2)){
+						occupied[i] = true;
+					}
+				}
+				
+				for(int i = 0; i < RobotPlayer.num_angles; i++){
+					for(int j = 0; j < RobotPlayer.num_angles; j++){
+						if(!occupied[i] && !occupied[j]){
+							int distance = Math.min(j - i, 24 - (j - i));
+							if(distance >= 4){
+								should_build_tree = true;
+							}
+						}
+					}
+				}
 
-                if(spots_available > 1 && rc.getRoundNum() > 40 && rc.getTreeCount() < 3 * rc.readBroadcast(904)){
+                if(should_build_tree && rc.getRoundNum() > 40 && rc.getTreeCount() < 3 * rc.readBroadcast(904)){
                     // Leave a location open to build combat units in, and don't build a tree if our army is weak
                     // System.out.println("Building tree...");
-                    for(int i = 0; i < num_gardener_slices; i++){
+                    for(int i = 0; i < RobotPlayer.num_angles; i++){
                         Direction next_build;
                         if(i % 2 == 0){
-                            next_build = RobotPlayer.backward.rotateLeftRads((int)(i + 1)/2 * 2 * (float)Math.PI/num_gardener_slices);
+                            next_build = RobotPlayer.backward.rotateLeftRads((int)(i + 1)/2 * 2 * (float)Math.PI/RobotPlayer.num_angles);
                         }
                         else{
-                            next_build = RobotPlayer.backward.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI/num_gardener_slices);
+                            next_build = RobotPlayer.backward.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI/RobotPlayer.num_angles);
                         }
                         if(rc.canPlantTree(next_build)){
                             rc.plantTree(next_build);
@@ -75,13 +90,13 @@ public class Gardener {
 
 
                     // Build either a soldier or a scout, depending on the makeup of our army and the game time
-                    for(int i = 0; i < num_gardener_slices; i++){
+                    for(int i = 0; i < RobotPlayer.num_angles; i++){
                         Direction next_build;
                         if(i % 2 == 0){
-                            next_build = RobotPlayer.forward.rotateLeftRads((int)(i + 1)/2 * 2 * (float)Math.PI/num_gardener_slices);
+                            next_build = RobotPlayer.forward.rotateLeftRads((int)(i + 1)/2 * 2 * (float)Math.PI/RobotPlayer.num_angles);
                         }
                         else{
-                            next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI/num_gardener_slices);
+                            next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI/RobotPlayer.num_angles);
                         }
 
                         if((numSoldiers < 20) && rc.canBuildRobot(RobotType.SOLDIER, next_build) && (numSoldiers < numScouts + 1 || rc.getRoundNum() > 400)){
