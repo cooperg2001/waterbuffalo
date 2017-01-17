@@ -19,7 +19,7 @@ public strictfp class RobotPlayer {
 	static MapLocation[] their_archons;
 	static MapLocation center;
 	static float[] potential_angles;
-	final static int num_angles = 10;
+	final static int num_angles = 24;
 	final static int num_steps = 5;
 	static RobotInfo[] robots;
 	static RobotInfo[][] enemies;
@@ -136,6 +136,9 @@ public strictfp class RobotPlayer {
 		int totalEnemies = 0;
 		for(int i = 0; i < enemies.length; i++) {
 			totalEnemies += enemies[i].length;
+		}
+		if(rc.getRoundNum() < 300){
+			totalEnemies -= enemies[0].length;
 		}
 		if(totalEnemies > 0){
 			RobotInfo priority_target = get_priority_target();
