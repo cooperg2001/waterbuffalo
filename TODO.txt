@@ -21,3 +21,9 @@ According to google (since this is a common game problem) the "Boids algorithms"
 ----Could theoretically be more complicated, but seems to help as it is now
 
 6 (MEDIUM-HIGH PRIORITY) (HIGH EFFORT). Our code for dealing with lumberjacks sucks.
+
+7 (HIGH PRIORITY) (LOW EFFORT). Have scouts target other scouts. Currently V4 vs. V5 ends up with a bunch of scouts flying around and not shooting each other, and the game goes to tiebreaker.
+
+8 (LOW PRIORITY) (HIGH EFFORT). Create heuristic for unit movement relative to enemy movement. Right now we have a movement protocol that goes in the order 1. dodge bullets 2. target units 3. move randomly -- we should also implement movement in response to general enemy movement.
+
+9 (MEDIUM PRIORITY) (LOW EFFORT). Implement lumberjacks. We lose whenever there are lots of neutral trees around, so if we detect we're on one of those types of maps we should build a lumberjack relatively early on in the game and have it chop down lots of neutral trees near the archon and possibly around the rest of the board.
