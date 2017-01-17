@@ -1,6 +1,9 @@
 1 (HIGH PRIORITY). Update broadcasting system. Currently keeps track of last seen enemy location (at 500) and last seen enemy type (at 501). 
 Short term (LOW EFFORT): alter to keep track of the last seen location of each specific type (i.e. keep track of last seen archon/scout/soldier/...).
 Long term (HIGH EFFORT): alter to do more complex things like build a map. Possible example: split the map into 10 x 10 squares, within each square keep track of what's in it, use this to improve the getBestLocation function. See http://imgur.com/QE04nKO for example from another team.
+---Done: ish? Added tracking of each different type, mostly in helper method updateEnemiesandBroadcast, and changing getPriority a bit
+----Still have not done the 10x10 thing
+
 
 2 (MEDIUM PRIORITY) (HIGH EFFORT). Update bullet dodging system. Currently calculates a normal vector to each bullet and tries to move towards their sum. Has some issues with two bullets coming like below:
 
@@ -14,5 +17,7 @@ According to google (since this is a common game problem) the "Boids algorithms"
 4 (MEDIUM PRIORITY) (LOW-MEDIUM EFFORT). Update initial secondary targets more intelligently -- currently seeds initial secondary target with starting location of enemy archon. Change to something more intelligent; e.g. simple improvement would be to use closest starting location of enemy archon rather than just the first.
 
 5 (MEDIUM-HIGH PRIORITY) (LOW-MEDIUM EFFORT). Update robot counts to consist of *alive* robots rather than *created* robots. Current version stores number of *created* units of a given type in 901-906; causes issues when gardener dies as these values are checked to determine if army needs a gardener etc. Idea: at end of turn (just before yield), each robot broadcasts its ID, and archons use their turn collating the information (as # of archons isn't used for anything and archons have double computation space).
+---Done: Send death signal for gardeners/combat units when health < 8
+----Could theoretically be more complicated, but seems to help as it is now
 
 6 (MEDIUM-HIGH PRIORITY) (HIGH EFFORT). Our code for dealing with lumberjacks sucks.
