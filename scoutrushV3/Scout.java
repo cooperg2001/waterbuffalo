@@ -25,7 +25,7 @@ public class Scout {
                 //System.out.println("After updating surroundings: " + Clock.getBytecodeNum());
                 RobotPlayer.findShakableTrees();
 
-                System.out.println("My beginning-of-turn secondary target is... " + secondary_target);
+                //System.out.println("My beginning-of-turn secondary target is... " + secondary_target);
 
                 if(RobotPlayer.isValidLoc(secondary_target)){
                     patience++;
@@ -50,7 +50,7 @@ public class Scout {
                     }
                 }
 
-                System.out.println("Now my secondary target is... " + secondary_target);
+               // System.out.println("Now my secondary target is... " + secondary_target);
 
                 //System.out.println("Made it A");
 
@@ -73,7 +73,7 @@ public class Scout {
                     target_robot = null;
                 }
 
-                System.out.println("My target has moved to " + target_loc);
+                //System.out.println("My target has moved to " + target_loc);
 
                 if(enemies.length > 0){
                     RobotInfo best_robot;
@@ -168,16 +168,16 @@ public class Scout {
 
                 //System.out.println("Made it D");
 
-                System.out.println("I am at " + rc.getLocation());
-                System.out.println("I want to move to " + target);
+                //System.out.println("I am at " + rc.getLocation());
+                //System.out.println("I want to move to " + target);
 
                 if(RobotPlayer.isValidLoc(target)){
-                    System.out.println("Fortunately " + target + " is valid");
+                    //System.out.println("Fortunately " + target + " is valid");
                     //System.out.println("Target acquired... " + Clock.getBytecodeNum());
                     if(rc.canMove(target)){
-                        System.out.println("I indeed can move to " + target);
+                        //System.out.println("I indeed can move to " + target);
                         rc.move(target);
-                        System.out.println("I have now moved to " + rc.getLocation());
+                        //System.out.println("I have now moved to " + rc.getLocation());
                         if(rc.getLocation().distanceTo(target) < 0.5 || (rc.getLocation().distanceTo(target) < 1.5 && rc.getType() == RobotType.SOLDIER)){
                             if(rc.canFirePentadShot()){
                                 rc.firePentadShot(rc.getLocation().directionTo(target_loc));
@@ -191,7 +191,7 @@ public class Scout {
                         }
                     }
                     else{
-                        System.out.println("But sadly, I cannot move to " + target);
+                        //System.out.println("But sadly, I cannot move to " + target);
                         if(RobotPlayer.isValidLoc(secondary_target) && rc.canMove(secondary_target)){
                             rc.move(secondary_target);
                             rand = RobotPlayer.randomDirection();

@@ -9,12 +9,6 @@ public class CombatUnit {
 
     static void runCombatUnit(RobotController rc) throws GameActionException {
 
-        if(rc.getType() == RobotType.SCOUT){
-            rc.broadcast(904, rc.readBroadcast(904) + 1); // Increment the number of scouts we've created this game
-        }
-        else{
-            rc.broadcast(903, rc.readBroadcast(903) + 1); // Increment the number of soldiers we've created this game
-        }
         boolean sentDeathSignal = false; //have we sent out a death signal
         Direction rand = RobotPlayer.randomDirection();
 
@@ -77,10 +71,10 @@ public class CombatUnit {
                                 should_shoot = false;
                             }
                         }
-                        if(rc.canFirePentadShot() && should_shoot){
+                        if(rc.canFirePentadShot() && should_shoot && rc.getTeamBullets() > 55){
                             rc.firePentadShot(rc.getLocation().directionTo(priority_target.getLocation()));
                         }
-                        if(rc.canFireTriadShot() && should_shoot){
+                        if(rc.canFireTriadShot() && should_shoot && rc.getTeamBullets() > 30){
                             rc.fireTriadShot(rc.getLocation().directionTo(priority_target.getLocation()));
                         }
                         if(rc.canFireSingleShot() && should_shoot){
@@ -92,12 +86,8 @@ public class CombatUnit {
                 //DEATH SIGNAL
                 if(!sentDeathSignal && rc.getHealth() < 8) {
                     sentDeathSignal = true;
-                    if(rc.getType() == RobotType.SCOUT){
-                        rc.broadcast(904, rc.readBroadcast(904) - 1); // Decrement the number of scouts we've created this game
-                    }
-                    else{
-                        rc.broadcast(903, rc.readBroadcast(903) - 1); // Decrement the number of soldiers we've created this game
-                    }
+                    rc.broadcast(900 + RobotPlayer.typeToInt(rc.getType()), rc.readBroadcast(900 + RobotPlayer.typeToInt(rc.getType())) - 1);
+                    // Decrement the number in our army stored in broadcast
                 }
 
                 Clock.yield();

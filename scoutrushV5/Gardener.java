@@ -10,7 +10,6 @@ public class Gardener {
     static void runGardener(RobotController rc) throws GameActionException {
 
 
-        rc.broadcast(901, rc.readBroadcast(901) + 1); // Increment the number of gardeners our team has created
         int spots_available = 0; // The number of places around our gardener we can build in
         boolean sentDeathSignal = false; // true if we've sent a death signal
 
@@ -71,6 +70,10 @@ public class Gardener {
                     }
                 }
                 else{
+                    int numSoldiers = rc.readBroadcast(904);
+                    int numScouts = rc.readBroadcast(903);
+
+
                     // Build either a soldier or a scout, depending on the makeup of our army and the game time
                     for(int i = 0; i < num_gardener_slices; i++){
                         Direction next_build;
@@ -80,10 +83,11 @@ public class Gardener {
                         else{
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI/num_gardener_slices);
                         }
-                        if((rc.readBroadcast(903) < 20) && rc.canBuildRobot(RobotType.SOLDIER, next_build) && (rc.readBroadcast(903) < rc.readBroadcast(904) || rc.getRoundNum() > 400)){
+
+                        if((numSoldiers < 20) && rc.canBuildRobot(RobotType.SOLDIER, next_build) && (numSoldiers < numScouts + 1 || rc.getRoundNum() > 400)){
                             rc.buildRobot(RobotType.SOLDIER, next_build);
                         }
-                        if((rc.readBroadcast(904) < 20) && rc.canBuildRobot(RobotType.SCOUT, next_build) && rc.readBroadcast(904) < 2 * rc.readBroadcast(903) + 1 && (rc.getRoundNum() < 400 || rc.getRoundNum() > 700)){
+                        if((numScouts < 20) && rc.canBuildRobot(RobotType.SCOUT, next_build) && (numScouts < 2 * numSoldiers + 1) && (rc.getRoundNum() < 400 || rc.getRoundNum() > 700)){
                             //System.out.println("Building scout...");
                             rc.buildRobot(RobotType.SCOUT, next_build);
                         }

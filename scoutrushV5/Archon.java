@@ -10,16 +10,15 @@ public class Archon {
     static void runArchon(RobotController rc) throws GameActionException {
 
 
-        rc.broadcast(900, rc.readBroadcast(900) + 1);
         if(rc.readBroadcast(900) == 1){
             // This is our first archon; initialize an enemy target for combat units to orient towards
             int encode = (int)RobotPlayer.their_archons[0].x * 1000 + (int)RobotPlayer.their_archons[0].y;
-            rc.broadcast(501, encode);     // Archon
-            rc.broadcast(502, 999999); // Gardener
-            rc.broadcast(503, 999999); // Soldier
-            rc.broadcast(504, 999999); // Tank
-            rc.broadcast(505, 999999); // Scout
-            rc.broadcast(506, 999999); // Lumberjack
+            rc.broadcast(500, encode);     // Archon
+            rc.broadcast(501, 999999); // Gardener
+            rc.broadcast(502, 999999); // Lumberjack
+            rc.broadcast(503, 999999); // Scout
+            rc.broadcast(504, 999999); // Soldier
+            rc.broadcast(505, 999999); // Tank
         }
 
         Direction rand = RobotPlayer.randomDirection();
@@ -41,7 +40,7 @@ public class Archon {
                 // Check all angles around us for potential build locations
                 for(int i = 0; i < RobotPlayer.num_angles; i++){
                     Direction dir = RobotPlayer.absolute_right.rotateLeftRads(RobotPlayer.potential_angles[i]);
-                    if(rc.canHireGardener(dir) && (rc.readBroadcast(904) >= 2 * rc.readBroadcast(901) - 2 || rc.getTeamBullets() > 200)){
+                    if(rc.canHireGardener(dir) && (rc.readBroadcast(903) >= 2 * rc.readBroadcast(901) - 2 || rc.getTeamBullets() > 200)){
                         // We can hire a gardener, and we have a sufficiently big army to justify hiring gardeners
                         // Try to make sure hiring a gardener doesn't trap our archon
                         if(rc.getRoundNum() > 30){

@@ -68,28 +68,27 @@ public strictfp class RobotPlayer {
 			potential_angles[i] = i * 2 * (float)Math.PI / num_angles;
 		}
 		center = new MapLocation(centerx / our_archons.length, centery / our_archons.length);
+
+		//increment broadcast for storing # of each type of robot in our army
+		rc.broadcast(900 + typeToInt(rc.getType()), rc.readBroadcast(900 + typeToInt(rc.getType())) + 1);
+		System.out.println("I'm a " + rc.getType() + "!");
 		
         // Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
         switch (rc.getType()) {
             case ARCHON:
-				rc.broadcast(900, rc.readBroadcast(900) + 1);
             	Archon.runArchon(rc);
                 break;
             case GARDENER:
-				rc.broadcast(901, rc.readBroadcast(901) + 1);
                 Gardener.runGardener(rc);
                 break;
             case SOLDIER:
-				rc.broadcast(902, rc.readBroadcast(902) + 1);
                 CombatUnit.runCombatUnit(rc);
                 break;
             /*case LUMBERJACK:
-            	rc.broadcast(903, rc.readBroadcast(903) + 1);
                 Lumberjack.runLumberjack(rc);
                 break;*/
 			case SCOUT:
-				rc.broadcast(904, rc.readBroadcast(904) + 1);
 				CombatUnit.runCombatUnit(rc);
 				break;
         }
@@ -133,7 +132,7 @@ public strictfp class RobotPlayer {
 
 	public static MapLocation get_best_location() throws GameActionException{
 		MapLocation best_location;
-		System.out.println("Finding best location... " + Clock.getBytecodeNum());
+		//System.out.println("Finding best location... " + Clock.getBytecodeNum());
 		int totalEnemies = 0;
 		for(int i = 0; i < enemies.length; i++) {
 			totalEnemies += enemies[i].length;
@@ -142,16 +141,16 @@ public strictfp class RobotPlayer {
 			RobotInfo priority_target = get_priority_target();
 			best_location = getBestShootingLocation(priority_target);
 			if(best_location.x != INVALID_LOCATION.x && rc.canMove(best_location)){
-				System.out.println("Found a good shooting location, going to " + best_location + " used " + Clock.getBytecodeNum());
+				//System.out.println("Found a good shooting location, going to " + best_location + " used " + Clock.getBytecodeNum());
 				return best_location;
 			}
 
 		}
 
-		System.out.println("Found no good shooting location. Dodging bullets... " + Clock.getBytecodeNum());
+		//System.out.println("Found no good shooting location. Dodging bullets... " + Clock.getBytecodeNum());
 		best_location = dodgeBullets();
 		if(best_location.x != INVALID_LOCATION.x && rc.canMove(best_location)){
-			System.out.println("Dodged " + bullets.length + " bullets using " + Clock.getBytecodeNum() + " going towards " + best_location);
+			//System.out.println("Dodged " + bullets.length + " bullets using " + Clock.getBytecodeNum() + " going towards " + best_location);
 			return best_location;
 		}
 
@@ -167,12 +166,12 @@ public strictfp class RobotPlayer {
 		//set the best location and one last check to see if it's dandy
 		best_location = last_sighting_location[priorityType];
 		if(best_location != INVALID_LOCATION && rc.canMove(best_location)) {
-			System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
+			//System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
 			return best_location;
 		}
 
 		//nothing worked, move randomly
-		System.out.println("No secondary target. Found no good movement location, move randomly. " + Clock.getBytecodeNum());
+		//System.out.println("No secondary target. Found no good movement location, move randomly. " + Clock.getBytecodeNum());
 		return INVALID_LOCATION;
 	}
 
@@ -352,16 +351,16 @@ public strictfp class RobotPlayer {
 			return RobotType.GARDENER;
 		}
 		if(x == 2){
-			return RobotType.SOLDIER;
+			return RobotType.LUMBERJACK;
 		}
 		if(x == 3){
-			return RobotType.TANK;
-		}
-		if(x == 4){
 			return RobotType.SCOUT;
 		}
+		if(x == 4){
+			return RobotType.SOLDIER;
+		}
 		if(x == 5) {
-			return RobotType.LUMBERJACK;
+			return RobotType.TANK;
 		}
 		return null;
 	}
@@ -373,16 +372,16 @@ public strictfp class RobotPlayer {
 		if(r == RobotType.GARDENER){
 			return 1;
 		}
-		if(r == RobotType.SOLDIER){
+		if(r == RobotType.LUMBERJACK){
 			return 2;
 		}
-		if(r == RobotType.TANK){
+		if(r == RobotType.SCOUT){
 			return 3;
 		}
-		if(r == RobotType.SCOUT){
+		if(r == RobotType.SOLDIER){
 			return 4;
 		}
-		if(r == RobotType.LUMBERJACK){
+		if(r == RobotType.TANK){
 			return 5;
 		}
 		return -1;
@@ -532,8 +531,8 @@ public strictfp class RobotPlayer {
 					}
 				}
 				if(rc.canShake(best.getLocation())){
-					System.out.println("I am at " + rc.getLocation());
-					System.out.println("Shaking tree at " + best.getLocation() + " to get " + best.getContainedBullets() + " bullets");
+					//System.out.println("I am at " + rc.getLocation());
+					//System.out.println("Shaking tree at " + best.getLocation() + " to get " + best.getContainedBullets() + " bullets");
 					rc.shake(best.getLocation());
 				}
 			}
