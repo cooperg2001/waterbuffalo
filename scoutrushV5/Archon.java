@@ -14,7 +14,7 @@ public class Archon {
             // This is our first archon; initialize an enemy target for combat units to orient towards
             int encode = (int)RobotPlayer.their_archons[0].x * 1000 + (int)RobotPlayer.their_archons[0].y;
             rc.broadcast(500, encode);     // Archon
-            rc.broadcast(501, 999999); // Gardener
+            rc.broadcast(501, encode); // Gardener
             rc.broadcast(502, 999999); // Lumberjack
             rc.broadcast(503, 999999); // Scout
             rc.broadcast(504, 999999); // Soldier
