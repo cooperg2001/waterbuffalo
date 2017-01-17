@@ -56,11 +56,11 @@ public class CombatUnit {
                     RobotInfo priority_target = RobotPlayer.get_priority_target();
                     if(RobotPlayer.shotWillHit(rc.getLocation(), priority_target)){
                         boolean should_shoot = true;
-                        /*if(priority_target.getType() == RobotType.ARCHON){
-                            if(rc.getRoundNum() < 500){
+                        if(priority_target.getType() == RobotType.ARCHON){
+                            if(rc.getRoundNum() < 300){
                                 should_shoot = false;
                             }
-                        }*/
+                        }
                         if(rc.getType() == RobotType.SCOUT && (priority_target.getType() == RobotType.SCOUT)){
                             if(RobotPlayer.robots.length - totalEnemies < 3){
                                 should_shoot = false;
@@ -71,10 +71,11 @@ public class CombatUnit {
                                 should_shoot = false;
                             }
                         }
-                        if(rc.canFirePentadShot() && should_shoot && rc.getTeamBullets() > 55){
+						float dist = rc.getLocation().distanceTo(priority_target.getLocation());
+                        if(rc.canFirePentadShot() && should_shoot && dist < 3){
                             rc.firePentadShot(rc.getLocation().directionTo(priority_target.getLocation()));
                         }
-                        if(rc.canFireTriadShot() && should_shoot && rc.getTeamBullets() > 30){
+                        if(rc.canFireTriadShot() && should_shoot && dist < 5){
                             rc.fireTriadShot(rc.getLocation().directionTo(priority_target.getLocation()));
                         }
                         if(rc.canFireSingleShot() && should_shoot){
