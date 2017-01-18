@@ -1,10 +1,10 @@
 package scoutrushV6;
 
 import battlecode.common.*;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * Created by Zach on 1/12/2017.
- */
+
 public class Gardener {
 
     static void runGardener(RobotController rc) throws GameActionException {
@@ -50,21 +50,26 @@ public class Gardener {
 
 
                 boolean should_build_tree = false;
-                boolean[] occupied = new boolean[RobotPlayer.num_angles];
-                for(int i=0; i < RobotPlayer.num_angles; i++){
-                    occupied[i] = false;
-                }
+                List<Integer> unoccupied_slots = new ArrayList<Integer>();
                 for(int i=0; i < RobotPlayer.num_angles; i++){
                     Direction next_build = RobotPlayer.backward.rotateLeftRads(i*gardener_angle_gradient);
                     //System.out.println("Checking location... " + rc.getLocation().add(next_build,2) + " from " + rc.getLocation());
                     if(!rc.canMove(next_build, 2)){
-                        occupied[i] = true;
+                        continue;
+                    }
+                    else{
+                        unoccupied_slots.add(i);
                     }
                 }
-                for(int i = 0; i < RobotPlayer.num_angles; i++){
-                    for(int j=0; j < RobotPlayer.num_angles; j++){
-                        if(!occupied[i] && !occupied[j]){
-                            int distance = Math.min(j - i, 24 - (j - i));
+                if (unoccupied_slots.size() >= 6){
+                    should_build_tree = true;
+                }
+                else{
+                    for(int i = 0; i < unoccupied_slots.size(); i++) {
+                        for (int j = 0; j < unoccupied_slots.size(); j++) {
+                            int iVal = unoccupied_slots.get(i);
+                            int jVal = unoccupied_slots.get(j);
+                            int distance = Math.min(jVal - iVal, 24 - (jVal - iVal));
                             if (distance >= 5){
                                 should_build_tree = true;
                             }
@@ -105,9 +110,8 @@ public class Gardener {
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
                         }
 
-                        if(numLumberjacks < 2
+                        if(numScouts + numSoldiers - 6 > 7*numLumberjacks
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
-                                && numScouts + numSoldiers >= 2
                                 && RobotPlayer.neutral_trees.length > 0){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
                             rc.broadcast(902, rc.readBroadcast(902) + 1);

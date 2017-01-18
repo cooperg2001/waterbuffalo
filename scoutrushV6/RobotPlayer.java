@@ -115,35 +115,71 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	/**
+	 *  HELPER FUNCTIONS LIST --
+	 *  shotWillHit
+	 *  get_best_location
+	 *  get_priority_target
+	 *  updateEnemiesAndBroadcast
+	 *  getBestShootingLocation
+	 *  dodgeBullets
+	 *  intToType
+	 *  typeToInt
+	 *  getOptimalDist
+	 *  getPriority
+	 *  CircleIntersectsLine
+	 *  findShakableTrees
+	 *  checkForStockpile
+	 *  randomDirection
+	 */
+
+
+	/**
+	 * shotWillHit
+	 *
+	 * @param loc -- MapLocation of robot in use
+	 * @param target -- RobotInfo of robot to shoot
+	 * @return boolean -- lol idk
+	 * @throws GameActionException
+	 */
+
 	public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
 		MapLocation bullet_hit_location = target.getLocation().add(target.getLocation().directionTo(loc), target.getType().bodyRadius);
 		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), 1);
 
 		for(int i = 0; i < robots.length; i++){
-			if(bullet_hit_location.distanceTo(robots[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
-				continue;
-			}
-			if(bullet_hit_location.distanceTo(robots[i].getLocation()) < .02){
-				continue;
-			}
-			if(CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, loc, bullet_hit_location)){
-				return false;
+			if (!(robots[i].equals(target))) {
+				if (bullet_hit_location.distanceTo(robots[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01) {
+					continue;
+				}
+				if (bullet_hit_location.distanceTo(robots[i].getLocation()) < .02) {
+					continue;
+				}
+				if (CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, loc, bullet_hit_location)) {
+					return false;
+				}
 			}
 		}
 
-		for(int i = 0; i < trees.length; i++){
-			if(bullet_hit_location.distanceTo(trees[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
+		for(int i = 0; i < neutral_trees.length; i++){
+			if(bullet_hit_location.distanceTo(neutral_trees[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
 				continue;
 			}
-			if(bullet_hit_location.distanceTo(trees[i].getLocation()) < .02){
+			if(bullet_hit_location.distanceTo(neutral_trees[i].getLocation()) < .02){
 				continue;
 			}
-			if(CircleIntersectsLine(trees[i].getLocation(), trees[i].getRadius(), loc, bullet_hit_location)){
+			if(CircleIntersectsLine(neutral_trees[i].getLocation(), neutral_trees[i].getRadius(), loc, bullet_hit_location)){
 				return false;
 			}
 		}
 		return true;
 	}
+
+	/**
+	 *
+	 * @return
+	 * @throws GameActionException
+	 */
 
 	public static MapLocation get_best_location() throws GameActionException {
 		MapLocation best_location;
@@ -201,6 +237,12 @@ public strictfp class RobotPlayer {
 		return INVALID_LOCATION;
 	}
 
+	/**
+	 *
+	 * @return
+	 * @throws GameActionException
+	 */
+
 	public static RobotInfo get_priority_target() throws GameActionException{
     	RobotInfo priority_target = null; //this strange initialization is needed since enemies[0], for example, might not have length > 0, so we can't just set it to [0][0]
     	for(int i = 0; i < enemies.length; i++) {
@@ -223,6 +265,11 @@ public strictfp class RobotPlayer {
 		}
 		return priority_target;
 	}
+
+	/**
+	 *
+	 * @throws GameActionException
+	 */
 
 	public static void updateEnemiesAndBroadcast() throws GameActionException {
 		int[] last_sighting_location_encoded = {rc.readBroadcast(500),
@@ -270,6 +317,13 @@ public strictfp class RobotPlayer {
 			}
 		}
 	}
+
+	/**
+	 *
+	 * @param priority_target
+	 * @return
+	 * @throws GameActionException
+	 */
 
 	static MapLocation getBestShootingLocation(RobotInfo priority_target) throws GameActionException{
 		float optimalDist = getOptimalDist(rc.getType(), priority_target.getType());
@@ -337,6 +391,12 @@ public strictfp class RobotPlayer {
 		return INVALID_LOCATION;
 	}
 
+	/**
+	 *
+	 * @return
+	 * @throws GameActionException
+	 */
+
 	static MapLocation dodgeBullets() throws GameActionException{
 		//int orig_bytecodes = Clock.getBytecodeNum();
 		float vector_x = (float) 0;
@@ -369,6 +429,12 @@ public strictfp class RobotPlayer {
 		return target;
 	}
 
+	/**
+	 *
+	 * @param x
+	 * @return
+	 */
+
 	static RobotType intToType(int x){
 		if(x == 0){
 			return RobotType.ARCHON;
@@ -391,6 +457,12 @@ public strictfp class RobotPlayer {
 		return null;
 	}
 
+	/**
+	 *
+	 * @param r
+	 * @return
+	 */
+
 	static int typeToInt(RobotType r){
 		if(r == RobotType.ARCHON){
 			return 0;
@@ -412,6 +484,13 @@ public strictfp class RobotPlayer {
 		}
 		return -1;
 	}
+
+	/**
+	 *
+	 * @param ours
+	 * @param theirs
+	 * @return
+	 */
 
 	static float getOptimalDist(RobotType ours, RobotType theirs){
 		if(ours == RobotType.SCOUT){
@@ -464,6 +543,13 @@ public strictfp class RobotPlayer {
 		return (float)0;
 	}
 
+	/**
+	 *
+	 * @param ours
+	 * @param theirs
+	 * @return
+	 */
+
 	static int getPriority(RobotType ours, RobotType theirs){
 		if(ours == RobotType.SCOUT){
 			if(theirs == RobotType.GARDENER){
@@ -502,6 +588,16 @@ public strictfp class RobotPlayer {
 		return 0;
 	}
 
+	/**
+	 *
+	 * @param center
+	 * @param radius
+	 * @param start
+	 * @param end
+	 * @return
+	 * @throws GameActionException
+	 */
+
 	static boolean CircleIntersectsLine(MapLocation center, float radius, MapLocation start, MapLocation end) throws GameActionException{
 		try{
 			if(start.distanceTo(center) < radius){
@@ -539,6 +635,11 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	/**
+	 *
+	 * @throws GameActionException
+	 */
+
 	static void findShakableTrees() throws GameActionException{
 		try{
 			//System.out.println("Finding shakable trees");
@@ -568,6 +669,11 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	/**
+	 *
+	 * @throws GameActionException
+	 */
+
 	static void checkForStockpile() throws GameActionException{
 		try{
 			if(rc.getTeamBullets() < 10){
@@ -582,14 +688,14 @@ public strictfp class RobotPlayer {
 		}
 	}
 
+	/**
+	 *
+	 * @return
+	 */
+
+
 	static Direction randomDirection() {
 		int rand_idx = (int)(num_angles * Math.random());
 		return absolute_right.rotateLeftRads(potential_angles[rand_idx]);
-	}
-
-	static float getDistToTree(TreeInfo tree) {
-		float center_distance = rc.getLocation().distanceTo(tree.getLocation());
-		float edge_distance = center_distance - rc.getType().bodyRadius - tree.getRadius();
-		return edge_distance;
 	}
 }
