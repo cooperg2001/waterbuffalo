@@ -49,9 +49,6 @@ public class Gardener {
                 float gardener_angle_gradient = 2 * (float)Math.PI/RobotPlayer.num_angles;
 
 
-                /** insert new code here
-                 *
-                 */
                 boolean should_build_tree = false;
                 boolean[] occupied = new boolean[RobotPlayer.num_angles];
                 for(int i=0; i < RobotPlayer.num_angles; i++){

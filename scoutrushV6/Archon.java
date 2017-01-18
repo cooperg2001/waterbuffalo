@@ -40,7 +40,7 @@ public class Archon {
                 // Check all angles around us for potential build locations
                 for(int i = 0; i < RobotPlayer.num_angles; i++){
                     Direction dir = RobotPlayer.absolute_right.rotateLeftRads(RobotPlayer.potential_angles[i]);
-                    if(rc.canHireGardener(dir) && ((rc.readBroadcast(904) + rc.readBroadcast(903) + 1) > 5 * rc.readBroadcast(901) - 5 || rc.getTeamBullets() > 310)){
+                    if(rc.canHireGardener(dir) && ((rc.readBroadcast(904) + rc.readBroadcast(903) + 1) > 5 * rc.readBroadcast(901) || rc.getTeamBullets() > 310)){
                         // We can hire a gardener, and we have a sufficiently big army to justify hiring gardeners
                         // Try to make sure hiring a gardener doesn't trap our archon
                         if(rc.getRoundNum() > 30){

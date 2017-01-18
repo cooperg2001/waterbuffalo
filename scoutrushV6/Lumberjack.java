@@ -5,11 +5,10 @@ import battlecode.common.*;
 public class Lumberjack {
 
     static void runLumberjack(RobotController rc) throws GameActionException {
-
+        MapLocation spawn = rc.getLocation();
+        boolean hasTree = false;
         Direction rand = RobotPlayer.randomDirection();
         boolean sentDeathSignal = false; // true if we've sent a death signal
-
-        boolean hasTreeTarget = false; // true if currently chopping down a tree
 
         while(true){
             try{
@@ -33,38 +32,36 @@ public class Lumberjack {
                     }
                 }
 
-                // Find closest neutral tree
+                // Find neutral tree closest to spawn, move to it if possible
                 if (RobotPlayer.neutral_trees.length > 0) {
                     TreeInfo closest_tree = RobotPlayer.neutral_trees[0];
                     for (int i = 0; i < RobotPlayer.neutral_trees.length; i++) {
                         TreeInfo test_tree = RobotPlayer.neutral_trees[i];
-                        if (RobotPlayer.getDistToTree(test_tree) < RobotPlayer.getDistToTree(closest_tree)) {
+                        if (spawn.distanceTo(test_tree.getLocation()) < spawn.distanceTo(closest_tree.getLocation())) {
                             closest_tree = test_tree;
                         }
                     }
+                    if (rc.canMove(rc.getLocation().directionTo(closest_tree.getLocation()), rc.getLocation().distanceTo(closest_tree.getLocation()) / 2)){
+                        rc.move(rc.getLocation().directionTo(closest_tree.getLocation()), rc.getLocation().distanceTo(closest_tree.getLocation()) / 2);
+                    }
                     // Test to see if lumberjack can chop down closest neutral tree
                     if (rc.canChop(closest_tree.location)){
-                        hasTreeTarget = true;
-                        // If lumberjack is about to kill tree, set target to false
-                        if(closest_tree.getHealth() <= 5){
-                            hasTreeTarget = false;
+                        hasTree = true;
+                        if (closest_tree.getHealth() < 6){
+                            hasTree = false;
                         }
                         rc.chop(closest_tree.location);
                     }
                 }
-
-                /**
-                 * If lumberjack isn't cutting down a tree,
-                 * move in direction lumberjack was previously moving,
-                 * else move randomly
-                 */
-                if (!hasTreeTarget){
+                // If the bot can't see trees or hasn't moved yet, move randomly
+                if (RobotPlayer.neutral_trees.length == 0
+                        || (!hasTree && !rc.hasMoved())) {
                     int trials = 0;
-                    while(!rc.canMove(rand) && trials < 10){
+                    while (!rc.canMove(rand) && trials < 10) {
                         rand = RobotPlayer.randomDirection();
-                        trials++;
+                        trials += 1;
                     }
-                    if(rc.canMove(rand)) {
+                    if (rc.canMove(rand)) {
                         rc.move(rand);
                     }
                 }
