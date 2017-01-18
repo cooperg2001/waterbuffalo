@@ -161,15 +161,15 @@ public strictfp class RobotPlayer {
 		//use secondary targets and find which type is the one we want to target
 		int priorityType = 0;
 		for(int i = 1; i < last_sighting_location.length; i++) {
-			if(last_sighting_location[priorityType] != INVALID_LOCATION
-					&& rc.canMove(last_sighting_location[priorityType])
+			if(last_sighting_location[i].x != INVALID_LOCATION.x
+					&& rc.canMove(last_sighting_location[i])
 					&& getPriority(rc.getType(), intToType(i)) < getPriority(rc.getType(), intToType(priorityType))) {
 				priorityType = i;
 			}
 		}
 		//set the best location and one last check to see if it's dandy
 		best_location = last_sighting_location[priorityType];
-		if(best_location != INVALID_LOCATION && rc.canMove(best_location) && rc.getType() != RobotType.ARCHON) {
+		if(best_location.x != INVALID_LOCATION.x && rc.canMove(best_location) && rc.getType() != RobotType.ARCHON) {
 			//System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
 			return best_location;
 		}

@@ -189,8 +189,8 @@ public strictfp class RobotPlayer {
 		//use secondary targets and find which type is the one we want to target
 		int priorityType = 0;
 		for(int i = 1; i < last_sighting_location.length; i++) {
-			if(last_sighting_location[priorityType] != INVALID_LOCATION
-					&& rc.canMove(last_sighting_location[priorityType])
+			if(last_sighting_location[i].x != INVALID_LOCATION.x
+					&& rc.canMove(last_sighting_location[i])
 					&& getPriority(rc.getType(), intToType(i)) < getPriority(rc.getType(), intToType(priorityType))) {
 				priorityType = i;
 			}
