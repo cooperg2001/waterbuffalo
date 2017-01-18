@@ -87,9 +87,9 @@ public strictfp class RobotPlayer {
 		center = new MapLocation(centerx / our_archons.length, centery / our_archons.length);
 
 		//increment broadcast for storing # of each type of robot in our army
-		rc.broadcast(900 + typeToInt(rc.getType()), rc.readBroadcast(900 + typeToInt(rc.getType())) + 1);
+		/*rc.broadcast(900 + typeToInt(rc.getType()), rc.readBroadcast(900 + typeToInt(rc.getType())) + 1);
 		System.out.println("I'm a " + rc.getType() + "!");
-		System.out.println("Have "  + rc.readBroadcast(903) + " scouts and " + rc.readBroadcast(904) + " soldiers.");
+		System.out.println("Have "  + rc.readBroadcast(903) + " scouts and " + rc.readBroadcast(904) + " soldiers.");*/
 
 		// Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
@@ -123,10 +123,7 @@ public strictfp class RobotPlayer {
 			if(bullet_hit_location.distanceTo(robots[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
 				continue;
 			}
-			if(bullet_hit_location.distanceTo(robots[i].getLocation()) < 1.01){
-				continue;
-			}
-			if(bullet_start_location.distanceTo(robots[i].getLocation()) < 1.01){
+			if(bullet_hit_location.distanceTo(robots[i].getLocation()) < .02){
 				continue;
 			}
 			if(CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, loc, bullet_hit_location)){
@@ -138,10 +135,7 @@ public strictfp class RobotPlayer {
 			if(bullet_hit_location.distanceTo(trees[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
 				continue;
 			}
-			if(bullet_hit_location.distanceTo(trees[i].getLocation()) < 1){
-				continue;
-			}
-			if(bullet_start_location.distanceTo(trees[i].getLocation()) < 1.01){
+			if(bullet_hit_location.distanceTo(trees[i].getLocation()) < .02){
 				continue;
 			}
 			if(CircleIntersectsLine(trees[i].getLocation(), trees[i].getRadius(), loc, bullet_hit_location)){
@@ -322,12 +316,12 @@ public strictfp class RobotPlayer {
 			// Check if moving there will result in being too close to a lumberjack
 			for(int j = 0; j < robots.length; j++){
 				if(robots[j].getType() == RobotType.LUMBERJACK || robots[j].getType() == RobotType.SOLDIER){
-					if(step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 5.05){
+					if(rc.getType() == RobotType.SCOUT && step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 4.55){
 						will_add_step = false;
 					}
 				}
 				if(robots[j].getType() == RobotType.LUMBERJACK || robots[j].getType() == RobotType.SOLDIER){
-					if(small_step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 5.05){
+					if(rc.getType() == RobotType.SCOUT && step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 4.55){
 						will_add_small_step = false;
 					}
 				}
@@ -428,10 +422,10 @@ public strictfp class RobotPlayer {
 				return (float)3.05;
 			}
 			if(theirs == RobotType.LUMBERJACK){
-				return (float)4.05;
+				return (float)5.05;
 			}
 			if(theirs == RobotType.SCOUT){
-				return (float)6.05;
+				return (float)2.05;
 			}
 			if(theirs == RobotType.SOLDIER || theirs == RobotType.TANK || theirs == RobotType.SCOUT){
 				return (float)12.05;
