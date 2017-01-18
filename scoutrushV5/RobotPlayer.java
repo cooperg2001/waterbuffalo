@@ -72,6 +72,7 @@ public strictfp class RobotPlayer {
 		//increment broadcast for storing # of each type of robot in our army
 		rc.broadcast(900 + typeToInt(rc.getType()), rc.readBroadcast(900 + typeToInt(rc.getType())) + 1);
 		System.out.println("I'm a " + rc.getType() + "!");
+		System.out.println("Have "  + rc.readBroadcast(903) + " scouts and " + rc.readBroadcast(904) + " soldiers.");
 		
         // Here, we've separated the controls into a different method for each RobotType.
         // You can add the missing ones or rewrite this into your own control structure.
@@ -140,7 +141,7 @@ public strictfp class RobotPlayer {
 		if(rc.getRoundNum() < 300){
 			totalEnemies -= enemies[0].length;
 		}
-		if(totalEnemies > 0){
+		if(totalEnemies > 0 && rc.getType() != RobotType.ARCHON){
 			RobotInfo priority_target = get_priority_target();
 			best_location = getBestShootingLocation(priority_target);
 			if(best_location.x != INVALID_LOCATION.x && rc.canMove(best_location)){
@@ -168,7 +169,7 @@ public strictfp class RobotPlayer {
 		}
 		//set the best location and one last check to see if it's dandy
 		best_location = last_sighting_location[priorityType];
-		if(best_location != INVALID_LOCATION && rc.canMove(best_location)) {
+		if(best_location != INVALID_LOCATION && rc.canMove(best_location) && rc.getType() != RobotType.ARCHON) {
 			//System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
 			return best_location;
 		}
