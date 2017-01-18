@@ -1,6 +1,12 @@
 ===============================
 Version History for scoutrushV7
 ===============================
+VERSION 7.2
+Changes: 
+	Slightly more conservative with PentaShots
+	Scouts ignore archons <300 rounds
+	More lumberjacks (but still only after 6 scouts+soldiers)
+
 
 VERSION 7.1
 1/18/2017 15:05 mwabbitt

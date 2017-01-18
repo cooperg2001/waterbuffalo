@@ -106,7 +106,7 @@ public class Gardener {
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
                         }
 
-                        if( numScouts + numSoldiers - 6 > 7*numLumberjacks
+                        if( numScouts + numSoldiers - 6 > 4 * numLumberjacks
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
                                 && RobotPlayer.neutral_trees.length > 0){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);

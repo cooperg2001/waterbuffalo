@@ -227,6 +227,9 @@ public strictfp class RobotPlayer {
 		}
 		//set the best location and one last check to see if it's dandy
 		best_location = last_sighting_location[priorityType];
+		if(rc.getType() == RobotType.SCOUT && rc.getRoundNum() < 300 && priorityType == 0) {
+			best_location = INVALID_LOCATION;
+		}
 		if(best_location != INVALID_LOCATION && rc.canMove(best_location) && rc.getType() != RobotType.ARCHON) {
 			//System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
 			return best_location;

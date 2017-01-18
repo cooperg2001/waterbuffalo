@@ -72,7 +72,7 @@ public class CombatUnit {
                             }
                         }
                         float dist = rc.getLocation().distanceTo(priority_target.getLocation());
-                        if(rc.canFirePentadShot() && should_shoot && dist < 3){
+                        if(rc.canFirePentadShot() && should_shoot && dist < 3 && rc.getTeamBullets() > 20){
                             rc.firePentadShot(rc.getLocation().directionTo(priority_target.getLocation()));
                         }
                         if(rc.canFireTriadShot() && should_shoot && dist < 5){
