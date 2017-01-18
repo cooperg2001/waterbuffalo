@@ -45,13 +45,16 @@ public class Archon {
                         // Try to make sure hiring a gardener doesn't trap our archon
                         if(rc.getRoundNum() > 30){
                             rc.hireGardener(dir);
+                            rc.broadcast(901, rc.readBroadcast(901) + 1);
                         }
                         else if(rc.canMove(dir.rotateLeftDegrees(90))){
                             rc.hireGardener(dir);
+                            rc.broadcast(901, rc.readBroadcast(901) + 1);
                             rc.move(dir.rotateLeftDegrees(90));
                         }
                         else if(rc.canMove(dir.rotateRightDegrees(90))){
                             rc.hireGardener(dir);
+                            rc.broadcast(901, rc.readBroadcast(901) + 1);
                             rc.move(dir.rotateRightDegrees(90));
                         }
                         break;
