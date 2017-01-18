@@ -1,16 +1,12 @@
 package scoutrushV7;
 
 import battlecode.common.*;
-import java.util.TreeMap;
-import java.util.Arrays;
-import java.util.List;
 
 public class Lumberjack {
 
     static void runLumberjack(RobotController rc) throws GameActionException {
         MapLocation spawn = rc.getLocation();
         boolean hasTree = false;
-        TreeInfo target_tree;
         Direction rand = RobotPlayer.randomDirection();
         boolean sentDeathSignal = false; // true if we've sent a death signal
 
@@ -26,10 +22,9 @@ public class Lumberjack {
                 RobotPlayer.our_trees = rc.senseNearbyTrees(-1, RobotPlayer.FRIEND);
                 RobotPlayer.bullets = rc.senseNearbyBullets();
 
-                // initialize target tree for convenience
-                target_tree = RobotPlayer.trees[0];
-
                 RobotPlayer.updateEnemiesAndBroadcast();
+				
+				System.out.println(Clock.getBytecodeNum());
                 // If adjacent to enemies, strike
                 for (RobotInfo robot : RobotPlayer.robots){
                     if (robot.getTeam() == RobotPlayer.ENEMY
@@ -38,49 +33,44 @@ public class Lumberjack {
                         rc.strike();
                     }
                 }
+				
+				System.out.println(Clock.getBytecodeNum());
 
-                // Test if really next to a tree
-                List<TreeInfo> neutral_trees_as_list = Arrays.asList(RobotPlayer.neutral_trees);
-                if (!neutral_trees_as_list.contains(target_tree) || !rc.canChop(target_tree.location)){
-                    hasTree = false;
-                    System.out.println("no tree :(");
-                }
-
-                // If adjacent to a tree, do not move unless provoked - cut tree
-
-                for (TreeInfo tree : RobotPlayer.neutral_trees){
-                    if (rc.canChop(tree.location)){
-                        hasTree = true;
-                        System.out.println("have tree :D");
-                        target_tree = tree;
-                        rc.chop(tree.location);
-                    }
-                }
-
-                // If not chopping down a tree, find neutral tree closest to spawn, move to it if possible
-                if (RobotPlayer.neutral_trees.length > 0 && !hasTree) {
-                    TreeMap<Float, TreeInfo> seen_neutral_trees = new TreeMap<Float, TreeInfo>();
-                    for (TreeInfo tree : RobotPlayer.neutral_trees) {
-                        seen_neutral_trees.put(tree.location.distanceTo(spawn), tree);
-                    }
-                    for (float distance_to_spawn : seen_neutral_trees.keySet()) {
-                        TreeInfo tree = seen_neutral_trees.get(distance_to_spawn);
-                        if (rc.canMove(rc.getLocation().directionTo(tree.location), rc.getLocation().distanceTo(tree.location))
-                                && !rc.hasMoved()) {
-                            rc.move(rc.getLocation().directionTo(tree.location), rc.getLocation().distanceTo(tree.location));
+                // Find neutral tree closest to spawn, move to it if possible
+                if (RobotPlayer.neutral_trees.length > 0) {
+                    TreeInfo closest_tree = RobotPlayer.neutral_trees[0];
+                    for (int i = 0; i < RobotPlayer.neutral_trees.length; i++) {
+                        TreeInfo test_tree = RobotPlayer.neutral_trees[i];
+                        if (spawn.distanceTo(test_tree.getLocation()) < spawn.distanceTo(closest_tree.getLocation())) {
+                            closest_tree = test_tree;
                         }
                     }
+					Direction target_to_robot = closest_tree.getLocation().directionTo(rc.getLocation());
+					for(int i = 0; i < RobotPlayer.num_angles; i++){
+						Direction target_dir;
+						if(i % 2 == 0){
+							target_dir = target_to_robot.rotateLeftRads((int)(i + 1)/2 * 2 * (float)Math.PI / RobotPlayer.num_angles);
+						}
+						else{
+							target_dir = target_to_robot.rotateRightRads((int)(i + 1)/2 * 2 * (float)Math.PI / RobotPlayer.num_angles);
+						}
+						MapLocation target_loc = closest_tree.getLocation().add(target_dir, closest_tree.getRadius() + rc.getType().bodyRadius);
+						if(rc.canMove(target_loc)){
+							rc.move(target_loc);
+							break;
+						}
+					}
+                    // Test to see if lumberjack can chop down closest neutral tree
+					for(int i = 0; i < RobotPlayer.neutral_trees.length; i++){
+						if(rc.canChop(RobotPlayer.neutral_trees[i].location)){
+							rc.chop(RobotPlayer.neutral_trees[i].location);
+							break;
+						}
+					}
                 }
-                // Chop down any adjacent tree
-                for (TreeInfo tree : RobotPlayer.neutral_trees){
-                    if (rc.canChop(tree.location)){
-                        hasTree = true;
-                        System.out.println("have tree :D");
-                        target_tree = tree;
-                        rc.chop(tree.location);
-                    }
-                }
-
+				
+				System.out.println(Clock.getBytecodeNum());
+			
                 // If the bot can't see trees or hasn't moved yet, move randomly
                 if (RobotPlayer.neutral_trees.length == 0
                         || (!hasTree && !rc.hasMoved())) {
@@ -93,12 +83,16 @@ public class Lumberjack {
                         rc.move(rand);
                     }
                 }
+				
+				System.out.println(Clock.getBytecodeNum());
 
                 // Death signal protocol
                 if(!sentDeathSignal && rc.getHealth() < 8) {
                     sentDeathSignal = true;
                     rc.broadcast(900 + RobotPlayer.typeToInt(rc.getType()), rc.readBroadcast(900 + RobotPlayer.typeToInt(rc.getType())) - 1);
                 }
+				
+				System.out.println(Clock.getBytecodeNum());
 
                 Clock.yield();
             } catch(Exception e){
