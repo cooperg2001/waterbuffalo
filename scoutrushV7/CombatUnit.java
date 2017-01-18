@@ -2,9 +2,7 @@ package scoutrushV7;
 
 import battlecode.common.*;
 
-/**
- * Created by Zach on 1/12/2017.
- */
+
 public class CombatUnit {
 
     static void runCombatUnit(RobotController rc) throws GameActionException {
