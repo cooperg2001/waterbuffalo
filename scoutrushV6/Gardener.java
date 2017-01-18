@@ -65,7 +65,7 @@ public class Gardener {
                     for(int j=0; j < RobotPlayer.num_angles; j++){
                         if(!occupied[i] && !occupied[j]){
                             int distance = Math.min(j - i, 24 - (j - i));
-                            if (distance >= 4){
+                            if (distance >= 5){
                                 should_build_tree = true;
                             }
                         }
@@ -73,7 +73,7 @@ public class Gardener {
                 }
 
 
-                if(should_build_tree && rc.getRoundNum() > 40 && rc.getTreeCount() < 3 * rc.readBroadcast(904)){
+                if(should_build_tree && rc.getRoundNum() > 40 && (2 * rc.getTreeCount() + 1 < (rc.readBroadcast(904) + rc.readBroadcast(903)) || rc.getTeamBullets() > 100)){
                     // Leave a location open to build combat units in, and don't build a tree if our army is weak
                     // System.out.println("Building tree...");
                     for(int i = 0; i < RobotPlayer.num_angles; i++){
@@ -110,11 +110,13 @@ public class Gardener {
                                 && numScouts + numSoldiers >= 2
                                 && RobotPlayer.neutral_trees.length > 0){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
+                            rc.broadcast(902, rc.readBroadcast(902) + 1);
                         }
                         if((numSoldiers < 20)
                                 && rc.canBuildRobot(RobotType.SOLDIER, next_build)
                                 && (numSoldiers < numScouts + 1 || rc.getRoundNum() > 400)){
                             rc.buildRobot(RobotType.SOLDIER, next_build);
+                            rc.broadcast(904, rc.readBroadcast(904) + 1);
                         }
                         if((numScouts < 20)
                                 && rc.canBuildRobot(RobotType.SCOUT, next_build)
@@ -122,6 +124,7 @@ public class Gardener {
                                 && (rc.getRoundNum() < 400 || rc.getRoundNum() > 700)){
                             //System.out.println("Building scout...");
                             rc.buildRobot(RobotType.SCOUT, next_build);
+                            rc.broadcast(903, rc.readBroadcast(903) + 1);
                         }
                     }
                 }
