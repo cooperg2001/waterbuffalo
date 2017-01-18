@@ -493,7 +493,7 @@ public strictfp class RobotPlayer {
 				return 5;
 			}
 			if(theirs == RobotType.GARDENER){
-				return 10;
+				return 4;
 			}
 		}
 		if(ours == RobotType.ARCHON || ours == RobotType.GARDENER){
