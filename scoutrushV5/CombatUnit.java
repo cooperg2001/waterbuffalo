@@ -61,11 +61,11 @@ public class CombatUnit {
                                 should_shoot = false;
                             }
                         }
-                        if(rc.getType() == RobotType.SCOUT && (priority_target.getType() == RobotType.SCOUT)){
+                        /*if(rc.getType() == RobotType.SCOUT && (priority_target.getType() == RobotType.SCOUT)){
                             if(RobotPlayer.robots.length - totalEnemies < 3){
                                 should_shoot = false;
                             }
-                        }
+                        }*/
                         if(rc.getType() == RobotType.SOLDIER){
                             if(priority_target.getType() == RobotType.SCOUT && rc.getLocation().distanceTo(priority_target.getLocation()) > 5){
                                 should_shoot = false;
