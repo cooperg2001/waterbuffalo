@@ -2,9 +2,7 @@ package scoutrushV6;
 
 import battlecode.common.*;
 
-/**
- * Created by Zach on 1/12/2017.
- */
+
 public class Archon {
 
     static void runArchon(RobotController rc) throws GameActionException {

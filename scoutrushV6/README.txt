@@ -1,11 +1,22 @@
 ===============================
 Version History for scoutrushV6
 ===============================
+
 VERSION 6.2
-Changes: 
-	Slightly more conservative with PentaShots
-	Scouts ignore archons <300 rounds
-	More lumberjacks (but still only after 6 scouts+soldiers)
+1/19/2017 17:09 mwabbitt, alexkatz, zobsniuk, r31415
+Changes:
+	COMBATUNIT.JAVA
+	* Slightly more conservative with pentad shots
+	GARDENER.JAVA
+	* Lumberjack building tweaked to occur if ARMY- 6 > 4 * jacks
+	LUMBERJACK.JAVA
+	* Lumberjacks now have three statuses: chasing, retreating, and chopping wood.
+		- Retreating takes highest priority, chasing second, chopping wood third.
+	* Lumberjacks now heuristically chop trees outward from spawn
+		- They prioritize chopping the trees closest to spawn they can see
+	ROBOTPLAYER.JAVA
+	* Under get_best_location, scouts ignore archons until Rnd 300
+
 VERSION 6.1
 1/18/2017 15:05 mwabbitt
 Changes:
