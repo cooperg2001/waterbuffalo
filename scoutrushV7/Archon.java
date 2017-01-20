@@ -7,17 +7,17 @@ public class Archon {
 
     static void runArchon(RobotController rc) throws GameActionException {
 
-		rc.broadcast(900, rc.readBroadcast(900) + 1);
-        if(rc.readBroadcast(900) == 1){
-            // This is our first archon; initialize an enemy target for combat units to orient towards
-            int encode = (int)RobotPlayer.their_archons[0].x * 1000 + (int)RobotPlayer.their_archons[0].y;
-            rc.broadcast(500, encode);    // Archon
-            rc.broadcast(501, encode); // Gardener
+        boolean hasBroadcasted = false;
+        int numArchon = rc.readBroadcast(900);
+        if(numArchon == 0){
+            rc.broadcast(500, 999999);    // Archon
+            rc.broadcast(501, 999999); // Gardener
             rc.broadcast(502, 999999); // Lumberjack
             rc.broadcast(503, 999999); // Scout
             rc.broadcast(504, 999999); // Soldier
             rc.broadcast(505, 999999); // Tank
         }
+        rc.broadcast(900, rc.readBroadcast(900) + 1);
 
         Direction rand = RobotPlayer.randomDirection();
 
@@ -34,6 +34,13 @@ public class Archon {
                 RobotPlayer.bullets = rc.senseNearbyBullets();
 
                 RobotPlayer.updateEnemiesAndBroadcast();
+
+                if(rc.readBroadcast(501) == 999999 && !hasBroadcasted){
+                    int encode = (int)RobotPlayer.their_archons[numArchon].x * 1000 + (int)RobotPlayer.their_archons[numArchon].y;
+                    rc.broadcast(500, encode); // Archon
+                    rc.broadcast(501, encode); // Gardener
+                    hasBroadcasted = true;
+                }
 
                 // Check all angles around us for potential build locations
                 for(int i = 0; i < RobotPlayer.num_angles; i++){

@@ -2,6 +2,20 @@
 Version History for scoutrushV7
 ===============================
 
+VERSION 7.2.1
+1/19/2017 19:14 alexkatz
+Changes:
+	ARCHON.JAVA
+	* Archons now broadcast locations of all enemy archons
+	GARDENER.JAVA
+	* Changed lumberjacks to spawn very quickly
+	* Tweaked soldiers to spawn slightly later
+		- condition is now numSoldiers < numScouts from numSoldiers < numScouts + 1
+	* Tweaked scouts so that they would only spawn in early game (<400) and midgame (>700)
+
+	ROBOTPLAYER.JAVA
+	* Bugfix for shotWillHit method
+
 VERSION 7.2
 1/19/2017 17:09 mwabbitt, alexkatz, zobsniuk, r31415
 Changes:

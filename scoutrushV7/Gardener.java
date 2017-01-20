@@ -106,7 +106,7 @@ public class Gardener {
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
                         }
 
-                        if( numScouts + numSoldiers - 6 > 4 * numLumberjacks
+                        if( numLumberjacks < 2
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
                                 && RobotPlayer.neutral_trees.length > 0){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
@@ -114,7 +114,7 @@ public class Gardener {
                         }
                         if((numSoldiers < 20)
                                 && rc.canBuildRobot(RobotType.SOLDIER, next_build)
-                                && (numSoldiers < numScouts + 1 || rc.getRoundNum() > 400)){
+                                && (numSoldiers < numScouts || rc.getRoundNum() > 400)){
                             rc.buildRobot(RobotType.SOLDIER, next_build);
                             rc.broadcast(904, rc.readBroadcast(904) + 1);
                         }

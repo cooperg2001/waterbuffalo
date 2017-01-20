@@ -143,8 +143,7 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 
-	/*
-		public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
+	public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
 		MapLocation bullet_hit_location = target.getLocation().add(target.getLocation().directionTo(loc), target.getType().bodyRadius);
 		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), 1);
 
@@ -179,39 +178,7 @@ public strictfp class RobotPlayer {
 		}
 		return true;
 	}
-	 */
 
-	public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
-		MapLocation bullet_hit_location = target.getLocation().add(target.getLocation().directionTo(loc), target.getType().bodyRadius);
-		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), 1);
-
-		for(int i = 0; i < robots.length; i++){
-			if (!(robots[i].equals(target))) {
-				if (bullet_hit_location.distanceTo(robots[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01) {
-					continue;
-				}
-				if (bullet_hit_location.distanceTo(robots[i].getLocation()) < .02) {
-					continue;
-				}
-				if (CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, loc, bullet_hit_location)) {
-					return false;
-				}
-			}
-		}
-
-		for(int i = 0; i < neutral_trees.length; i++){
-			if(bullet_hit_location.distanceTo(neutral_trees[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
-				continue;
-			}
-			if(bullet_hit_location.distanceTo(neutral_trees[i].getLocation()) < .02){
-				continue;
-			}
-			if(CircleIntersectsLine(neutral_trees[i].getLocation(), neutral_trees[i].getRadius(), loc, bullet_hit_location)){
-				return false;
-			}
-		}
-		return true;
-	}
 
 	/**
 	 *

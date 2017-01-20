@@ -121,7 +121,6 @@ public class Lumberjack {
                 else if (status == 0){
                     // If you can't see any neutral trees, move randomly
                     if (RobotPlayer.neutral_trees.length == 0) {
-                        System.out.println("Where dem trees at");
                         int trials = 0;
                         while (!rc.canMove(rand) && trials < 10) {
                             rand = RobotPlayer.randomDirection();
@@ -142,7 +141,6 @@ public class Lumberjack {
                                 hasTree = false;
                             }
                             else {
-                                System.out.println("I got me a tree");
                                 if (rc.canChop(target_tree.location)) {
                                     rc.chop(target_tree.location);
                                 }
