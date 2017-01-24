@@ -3,7 +3,7 @@ import battlecode.common.*;
 
 public strictfp class RobotPlayer {
     static RobotController rc;
-	final static int num_slices = 30;
+	final static int num_slices = 36;
 	static Team FRIEND;
 	static Team ENEMY;
 	static Team NEUTRAL;
@@ -70,6 +70,8 @@ public strictfp class RobotPlayer {
 			
             try {
 				
+				findShakableTrees();
+				
 				if(rc.getTeamBullets() > 200 && rc.getRoundNum() > 50){
 					rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % 10));
 				}
@@ -104,6 +106,12 @@ public strictfp class RobotPlayer {
 
         // The code you want your robot to perform every round should be in this loop
         while (true) {
+			
+			findShakableTrees();
+			
+			if(rc.getTeamBullets() > 200 && rc.getRoundNum() > 50){
+				rc.donate(rc.getTeamBullets() - (rc.getTeamBullets() % rc.getVictoryPointCost()));
+			}
 
             // Try/catch blocks stop unhandled exceptions, which cause your robot to explode
             try {
@@ -119,7 +127,7 @@ public strictfp class RobotPlayer {
 				
 				//System.out.println("There are " + spots_available + " spots available from " + rc.getLocation());
 				
-				if(spots_available >= 1){
+				if(spots_available >= 0){
 					//System.out.println("Building tree...");
 					for(int i = 0; i < num_slices; i++){
 						if(rc.canPlantTree(absolute_right.rotateLeftRads(i * 2 * (float)Math.PI/num_slices))){
@@ -320,4 +328,33 @@ public strictfp class RobotPlayer {
 
         return (perpendicularDist <= rc.getType().bodyRadius);
     }
+	
+	static void findShakableTrees() throws GameActionException{
+		try{
+			//System.out.println("Finding shakable trees");
+			TreeInfo[] trees = rc.senseNearbyTrees(-1, NEUTRAL);
+			if(trees.length == 0){
+				//System.out.println("No shakable trees nearby :(");
+				return;
+			}
+			else{
+				TreeInfo best = trees[0];
+				for(int i = 0; i < trees.length; i++){
+					if(rc.canShake(trees[i].getLocation())){
+						if(trees[i].getContainedBullets() > best.getContainedBullets() || !rc.canShake(best.getLocation())){
+							best = trees[i];
+						}
+					}
+				}
+				if(rc.canShake(best.getLocation())){
+					//System.out.println("I am at " + rc.getLocation());
+					//System.out.println("Shaking tree at " + best.getLocation() + " to get " + best.getContainedBullets() + " bullets");
+					rc.shake(best.getLocation());
+				}
+			}
+		} catch(Exception e){
+			System.out.println("findShakableTrees() error");
+			e.printStackTrace();
+		}
+	}
 }
