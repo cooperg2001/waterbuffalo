@@ -291,7 +291,7 @@ public strictfp class RobotPlayer {
 	public static MapLocation get_best_location() throws GameActionException {
 		MapLocation best_location;
 
-		// If you're a scout and it's early, rush their archons
+		// If you're a scout and it's early, rush their archons, because their gardener is probably nearby
 		if (rc.getType() == RobotType.SCOUT
 				&& rc.getRoundNum() < 100
 				&& rc.getLocation().distanceTo(RobotPlayer.their_archons[0]) > 5){
@@ -321,13 +321,13 @@ public strictfp class RobotPlayer {
 		}
 
 		//System.out.println("Found no good shooting location. Dodging bullets... " + Clock.getBytecodeNum());
-		if (rc.getRoundNum() > 100){
+		/*if (rc.getRoundNum() > 100){
 			best_location = dodgeBullets();
 			if(best_location.x != INVALID_LOCATION.x && rc.canMove(best_location)){
 				//System.out.println("Dodged " + bullets.length + " bullets using " + Clock.getBytecodeNum() + " going towards " + best_location);
 				return best_location;
 			}
-		}
+		}*/
 
 		//use secondary targets and find which type is the one we want to target
 		int priorityType = 0;

@@ -103,10 +103,17 @@ public class Gardener {
                         else{
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
                         }
+                        if(numScouts < 30
+                                && rc.canBuildRobot(RobotType.SCOUT, next_build)
+                                && rc.getOpponentVictoryPoints() > rc.getRoundNum() / 10 + 40){ //TURTLE ALERT
+                            rc.buildRobot(RobotType.SCOUT, next_build);
+                        }
 						
-						if(rc.canBuildRobot(RobotType.TANK, next_build)
+						if(numTanks < 20
+						        && rc.canBuildRobot(RobotType.TANK, next_build)
 								&& (rc.getRoundNum() > 1000 || rc.getTeamBullets() > 300)
-								&& (rc.getTeamBullets() > 6 * numSoldiers)){
+								&& (rc.getTeamBullets() > 6 * numSoldiers)
+                                && (numSoldiers > 4)){
 							rc.buildRobot(RobotType.TANK, next_build);
 						}
                         if(numLumberjacks < 20

@@ -153,8 +153,15 @@ public class Lumberjack {
                     // Else, start chopping!
                     else{
                         // If it can chop a tree, chop it down.
-                        TreeInfo closest_tree = RobotPlayer.neutral_trees[0];
-                        if (rc.canChop(closest_tree.location)){
+                        TreeInfo closest_tree;
+                        if(RobotPlayer.neutral_trees.length > 0) {
+                            closest_tree = RobotPlayer.neutral_trees[0];
+                        } else if(RobotPlayer.their_trees.length > 0) {
+                            closest_tree = RobotPlayer.their_trees[0];
+                        } else {
+                            closest_tree = null;
+                        }
+                        if (closest_tree != null && rc.canChop(closest_tree.location)){
                             rc.chop(closest_tree.location);
                         }
                         // Else, can't chop down trees. Move towards tree closest to spawn and chop it.
@@ -166,6 +173,7 @@ public class Lumberjack {
 							for (TreeInfo tree : RobotPlayer.their_trees) {
 								trees_by_spawn_dist.put(tree.location.distanceTo(spawn), tree);
 							}
+							outerloop: //used to break out of nested FOR loops
                             for (float tree_spawn_dist : trees_by_spawn_dist.keySet()){
                                 TreeInfo tree = trees_by_spawn_dist.get(tree_spawn_dist);
 								Direction target_to_robot = tree.getLocation().directionTo(rc.getLocation());
@@ -179,8 +187,8 @@ public class Lumberjack {
 									}
 									MapLocation target_loc = closest_tree.getLocation().add(target_dir, closest_tree.getRadius() + rc.getType().bodyRadius);
 									if(rc.canMove(target_loc)){
-										rc.move(target_loc);
-										break;
+									    rc.move(target_loc);
+										break outerloop;
 									}
 								}
                                 // Chop if you can
