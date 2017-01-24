@@ -149,14 +149,14 @@ public strictfp class RobotPlayer {
 					     MapLocation line_end){
 		// Find area of triangle, solve for height from query to line
 		// Area found from Shoelace thm
-		float Area = Math.abs((0.5)*(line_start.x*line_end.y
-					    +line_end.x*query_point.y
+		float Area = Math.abs((float)(0.5)*(line_start.x*line_end.y
+						+line_end.x*query_point.y
 					    +query_point.x*line_start.y
 					    -line_start.y*line_end.x
 					    -line_end.y*query_point.x
 					    -query_point.y*line_start.x));
-		side_length = line_start.distanceTo(line_end);
-		height = 2.0 * Area / side_length;
+		float side_length = line_start.distanceTo(line_end);
+		float height = (float)2.0 * Area / side_length;
 		return height;
 	}
 
@@ -169,6 +169,7 @@ public strictfp class RobotPlayer {
 	 * Function both moves the robot and returns its positions before and after the move.
 	 * 	-- NOTE: helper function must be paired with a running tally of closest point on m_line;
 	 *		in other words, book-keeping for bug-pathing must be done in unit logic.
+	 *
 	 * @param previous_velocity (Direction) direction in which robot previously moved
 	 * @param m_start (MapLocation) point at which m_line starts -- where bugPathToLoc was first called
 	 * @param m_end (MapLocation) endpoint of m_line -- destination of path
@@ -180,47 +181,53 @@ public strictfp class RobotPlayer {
 					     MapLocation m_start,
 					     MapLocation m_end,
 					     MapLocation closest_point){
-		MapLocation previous_location = rc.getLocation();
-		MapLocation new_location = null;
-		// If we are on the line, and as close as the closest point we've been at so far, we attempt to move on the line.
-		if (DistanceToLine(previous_location, m_start, m_end) < 0.5
-		   && previous_location.distanceTo(m_end)-closest_point.distanceTo(m_end)<0.5
-		   && rc.canMove(previous_location.directionTo(m_end))){
-			rc.move(previous_location.directionTo(m_end));
-			new_location = rc.getLocation();
-		}
-		else{
-			// Either we're not on the line or we've come across an obstacle.
-			// Scan angles from where we just moved from working counterclockwise, until we sense an obstacle
-			boolean obstacle_found = false;
-			Direction potential_direction = null;
-			// Dummy variable
-			int i = -1;
-			while (!obstacle_found){
-				i += 1;
-				potential_direction = previous_velocity.rotateRightDegrees((float)180.0-(float)360.0*i/num_angles);
-				if (!rc.canMove(potential_direction)){
-					// We've found the obstacle
-					obstacle_found = true;
-				}
-			}
-			// Keep scanning until we stop sensing the obstacle
-			boolean egress_fond = false;
-			while (!egress_found){
-				i += 1;
-				potential_direction = previous_velocity.rotateRightDegrees((float)180.0-(float)360.0*i/num_angles);
-				if (rc.canMove(potential_direction)){
-					// We've found a method of egress
-					egress_found = true;
-				}
-			}
-			if (potential_direction != null){
-				rc.move(potential_direction);
+		try {
+			MapLocation previous_location = rc.getLocation();
+			MapLocation new_location = null;
+			// If we are on the line, and as close as the closest point we've been at so far, we attempt to move on the line.
+			if (DistanceToLine(previous_location, m_start, m_end) < 0.5
+					&& previous_location.distanceTo(m_end) - closest_point.distanceTo(m_end) < 0.5
+					&& rc.canMove(previous_location.directionTo(m_end))) {
+				rc.move(previous_location.directionTo(m_end));
 				new_location = rc.getLocation();
+			} else {
+				// Either we're not on the line or we've come across an obstacle.
+				// Scan angles from where we just moved from working counterclockwise, until we sense an obstacle
+				boolean obstacle_found = false;
+				Direction potential_direction = null;
+				// Dummy variable
+				int i = -1;
+				while (!obstacle_found) {
+					i += 1;
+					potential_direction = previous_velocity.rotateRightDegrees((float) 180.0 - (float) 360.0 * i / num_angles);
+					if (!rc.canMove(potential_direction)) {
+						// We've found the obstacle
+						obstacle_found = true;
+					}
+				}
+				// Keep scanning until we stop sensing the obstacle
+				boolean egress_found = false;
+				while (!egress_found) {
+					i += 1;
+					potential_direction = previous_velocity.rotateRightDegrees((float) 180.0 - (float) 360.0 * i / num_angles);
+					if (rc.canMove(potential_direction)) {
+						// We've found a method of egress
+						egress_found = true;
+					}
+				}
+				if (potential_direction != null) {
+					rc.move(potential_direction);
+					new_location = rc.getLocation();
+				}
 			}
 			MapLocation[] beforeAfterPositions = {previous_location, new_location};
 			return beforeAfterPositions;
+
+		} catch(Exception e){
+			e.printStackTrace();
 		}
+		MapLocation[] null_grid = {center, center};
+		return null_grid;
 	}
 
 
