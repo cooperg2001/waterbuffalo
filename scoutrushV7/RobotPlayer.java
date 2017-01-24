@@ -32,19 +32,21 @@ public strictfp class RobotPlayer {
 
 	/**
 	 * BROADCAST DIRECTORY
-	 * 500 - last observed location of ENEMY archon target
-	 * 501 - last observed location of ENEMY gardener target
-	 * 502 - last observed location of ENEMY lumberjack target
-	 * 503 - last observed location of ENEMY scout target
-	 * 504 - last observed location of ENEMY soldier target
-	 * 505 - last observed location of ENEMY tank target
+	 * [500,505] - last observed location of ENEMY unit
+	 * 500 - archon
+	 * 501 - gardener
+	 * 502 - lumberjack
+	 * 503 - scout
+	 * 504 - soldier
+	 * 505 - tank
 	 *
-	 * 900 - estimated # of FRIEND archons
-	 * 901 - estimated # of FRIEND gardeners
-	 * 902 - estimated # of FRIEND lumberjacks
-	 * 903 - estimated # of FRIEND scouts
-	 * 904 - estimated # of FRIEND soldiers
-	 * 905 - estimated # of FRIEND tanks
+	 * [900,905] - estimated # of FRIEND units
+	 * 900 - archons
+	 * 901 - gardeners
+	 * 902 - lumberjacks
+	 * 903 - scouts
+	 * 904 - soldiers
+	 * 905 - tanks
 	 */
 
 	/**
@@ -91,6 +93,7 @@ public strictfp class RobotPlayer {
 		System.out.println("I'm a " + rc.getType() + "!");
 		System.out.println("Have "  + rc.readBroadcast(903) + " scouts and " + rc.readBroadcast(904) + " soldiers.");*/
 
+
 		// Here, we've separated the controls into a different method for each RobotType.
 		// You can add the missing ones or rewrite this into your own control structure.
 		switch (rc.getType()) {
@@ -131,15 +134,16 @@ public strictfp class RobotPlayer {
 	 *  findShakableTrees
 	 *  checkForStockpile
 	 *  randomDirection
-	 */
+	 **/
 
 
 	/**
 	 * shotWillHit
 	 *
-	 * @param loc -- MapLocation of robot in use
-	 * @param target -- RobotInfo of robot to shoot
-	 * @return boolean -- lol idk
+	 * @param loc (MapLocation) Location of rc
+	 * @param target (RobotInfo) robot to shoot
+	 * @return (boolean) whether or not a shot you shoot at an enemy will actually hit an enemy
+	 * 					-- in particular, makes sure there aren't any trees in the way
 	 * @throws GameActionException
 	 */
 
@@ -182,13 +186,18 @@ public strictfp class RobotPlayer {
 
 	/**
 	 *
-	 * @return
+	 * @return Best location according to heuristic
+	 * 			-- If you're a scout and it's early, rush their archons
+	 * 			-- Otherwise, if you're a combat unit, rush highest priority enemy
+	 * 			-- Otherwise, dodge bullets if it's not early
+	 * 			-- Otherwise, move towards the last seen enemy of highest priority
 	 * @throws GameActionException
 	 */
 
 	public static MapLocation get_best_location() throws GameActionException {
 		MapLocation best_location;
 
+		// If you're a scout and it's early, rush their archons
 		if (rc.getType() == RobotType.SCOUT
 				&& rc.getRoundNum() < 100
 				&& rc.getLocation().distanceTo(RobotPlayer.their_archons[0]) > 5){
@@ -197,13 +206,17 @@ public strictfp class RobotPlayer {
 		}
 
 		//System.out.println("Finding best location... " + Clock.getBytecodeNum());
+
+		// Find # of total enemies we sensed
 		int totalEnemies = 0;
 		for (int i = 0; i < enemies.length; i++) {
 			totalEnemies += enemies[i].length;
 		}
+		// Disregard archons
 		if(rc.getRoundNum() < 300){
 			totalEnemies -= enemies[0].length;
 		}
+		// If we can see an enemy, move towards the one with the highest priority
 		if(totalEnemies > 0 && rc.getType() != RobotType.ARCHON){
 			RobotInfo priority_target = get_priority_target();
 			best_location = getBestShootingLocation(priority_target);
@@ -233,9 +246,11 @@ public strictfp class RobotPlayer {
 		}
 		//set the best location and one last check to see if it's dandy
 		best_location = last_sighting_location[priorityType];
+		// Disregard archons if you're a scout and it's early
 		if(rc.getType() == RobotType.SCOUT && rc.getRoundNum() < 300 && priorityType == 0) {
 			best_location = INVALID_LOCATION;
 		}
+		// If you're not an archon...
 		if(best_location != INVALID_LOCATION && rc.canMove(best_location) && rc.getType() != RobotType.ARCHON) {
 			//System.out.println("Found no way to dodge " + bullets.length + " bullets. Heading towards secondary target... " + best_location + " used " + Clock.getBytecodeNum());
 			return best_location;
@@ -247,8 +262,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return (RobotInfo) the robot in RobotPlayer.enemies with the highest priority relative to rc.
+	 * 						-- If multiple robots have highest priority, chooses the first one.
 	 * @throws GameActionException
 	 */
 
@@ -262,6 +277,7 @@ public strictfp class RobotPlayer {
 		}
 		if(priority_target == null) {
 			return null; //something REALLY went wrong if this happens
+			// Most likely, have not updated enemies yet.
 		}
 		for(int i = 0; i < enemies.length; i++){
 			for(int j = 0; j < enemies[i].length; j++){
@@ -276,7 +292,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
+	 * Overwrites broadcast [500,505] with closest enemies of each type to robot
+	 * Sets RobotPlayer.enemies to be a matrix of all enemies seen this by this robot this tick
 	 * @throws GameActionException
 	 */
 
@@ -329,26 +346,34 @@ public strictfp class RobotPlayer {
 
 	/**
 	 *
-	 * @param priority_target
-	 * @return
+	 * @param priority_target (RobotInfo) enemy robot we wish to shoot at
+	 * @return (MapLocation) best position to move to so we can shoot at the robot without being in harm's way
 	 * @throws GameActionException
 	 */
 
 	static MapLocation getBestShootingLocation(RobotInfo priority_target) throws GameActionException{
+
+		// Find distance the robot SHOULD be away from the enemy
 		float optimalDist = getOptimalDist(rc.getType(), priority_target.getType());
 
+
 		for(int i = 0; i < num_angles; i++){
+			// If we've used too much bytecode already, just hang
 			if(Clock.getBytecodeNum() > 8000){
 				return INVALID_LOCATION;
 			}
+
+			// Create potential locations optimalDist away from priority_target
 			Direction target_to_robot = priority_target.getLocation().directionTo(rc.getLocation());
 			Direction potential_dir;
+			// Fix potential_dir so that it is in a 180-degree arc centered at target_to_robot
 			if(i % 2 == 0){
 				potential_dir = target_to_robot.rotateLeftDegrees((int)((i + 1)/2) * 360 / num_angles);
 			}
 			else{
 				potential_dir = target_to_robot.rotateRightDegrees((int)((i + 1)/2) * 360 / num_angles);
 			}
+
 			MapLocation potential_shooting_loc = priority_target.getLocation().add(potential_dir, optimalDist);
 			MapLocation step_towards_shooting_loc = rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), Math.min(rc.getLocation().distanceTo(potential_shooting_loc), rc.getType().strideRadius));
 			MapLocation small_step_towards_shooting_loc = rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), Math.min(rc.getLocation().distanceTo(potential_shooting_loc), (float)rc.getType().bulletSpeed - (float)rc.getType().bodyRadius - (float)0.1));
@@ -362,8 +387,11 @@ public strictfp class RobotPlayer {
 			/*if(step_towards_shooting_loc.distanceTo(priority_target.getLocation()) < optimalDist + 1 && !shotWillHit(potential_shooting_loc, priority_target)){
 				continue;
 			}*/
+
 			boolean will_add_step = true;
 			boolean will_add_small_step = true;
+
+			// Make sure we don't hit any bullets if we go there
 			for(int j = 0; j < bullets.length; j++){
 				if(Clock.getBytecodeNum() > 8000){
 					return INVALID_LOCATION;
@@ -376,7 +404,7 @@ public strictfp class RobotPlayer {
 				}
 			}
 
-			// Check if moving there will result in being too close to a lumberjack
+			// Check if moving there will result in being too close to a lumberjack or soldier
 			for(int j = 0; j < robots.length; j++){
 				if(robots[j].getType() == RobotType.LUMBERJACK || robots[j].getType() == RobotType.SOLDIER){
 					if(rc.getType() == RobotType.SCOUT && step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 4.55){
@@ -401,8 +429,7 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return (Location) a location that is out of the way of each bullet the robot has senced
 	 * @throws GameActionException
 	 */
 
@@ -439,171 +466,165 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
-	 * @param x
-	 * @return
+	 * @param x (int) integer to convert to RobotType
+	 * @return (RobotType) according to integer code
+	 * code-to-type conversion:
+	 * 0 -- ARCHON
+	 * 1 -- GARDENER
+	 * 2 -- LUMBERJACK
+	 * 3 -- SCOUT
+	 * 4 -- SOLDIER
+	 * 5 -- TANK
 	 */
 
 	static RobotType intToType(int x){
-		if(x == 0){
-			return RobotType.ARCHON;
+		switch (x){
+			case 0:
+				return RobotType.ARCHON;
+			case 1:
+				return RobotType.GARDENER;
+			case 2:
+				return RobotType.LUMBERJACK;
+			case 3:
+				return RobotType.SCOUT;
+			case 4:
+				return RobotType.SOLDIER;
+			case 5:
+				return RobotType.TANK;
 		}
-		if(x == 1){
-			return RobotType.GARDENER;
-		}
-		if(x == 2){
-			return RobotType.LUMBERJACK;
-		}
-		if(x == 3){
-			return RobotType.SCOUT;
-		}
-		if(x == 4){
-			return RobotType.SOLDIER;
-		}
-		if(x == 5) {
-			return RobotType.TANK;
-		}
+		// Something fucked up, perchance...
 		return null;
 	}
 
 	/**
-	 *
-	 * @param r
-	 * @return
+	 * @param r (RobotType) type of robot to convert to integer
+	 * @return (int) integer code for input robot type
+	 * code-to-type conversion:
+	 * 0 -- ARCHON
+	 * 1 -- GARDENER
+	 * 2 -- LUMBERJACK
+	 * 3 -- SCOUT
+	 * 4 -- SOLDIER
+	 * 5 -- TANK
 	 */
 
 	static int typeToInt(RobotType r){
-		if(r == RobotType.ARCHON){
-			return 0;
+		switch (r){
+			case ARCHON:
+				return 0;
+			case GARDENER:
+				return 1;
+			case LUMBERJACK:
+				return 2;
+			case SCOUT:
+				return 3;
+			case SOLDIER:
+				return 4;
+			case TANK:
+				return 5;
 		}
-		if(r == RobotType.GARDENER){
-			return 1;
-		}
-		if(r == RobotType.LUMBERJACK){
-			return 2;
-		}
-		if(r == RobotType.SCOUT){
-			return 3;
-		}
-		if(r == RobotType.SOLDIER){
-			return 4;
-		}
-		if(r == RobotType.TANK){
-			return 5;
-		}
+		// Something fucked up, perchance...
 		return -1;
 	}
 
 	/**
 	 *
-	 * @param ours
-	 * @param theirs
-	 * @return
+	 * @param ours (RobotType) type of our robot querying distance
+	 * @param theirs (RobotType) type of enemy robot to keep distance from
+	 * @return (float) optimal distance to keep between our robot and their robot
 	 */
 
 	static float getOptimalDist(RobotType ours, RobotType theirs){
-		if(ours == RobotType.SCOUT){
-			if(theirs == RobotType.GARDENER){
-				return (float)2.05;
-			}
-			if(theirs == RobotType.ARCHON){
-				return (float)3.05;
-			}
-			if(theirs == RobotType.LUMBERJACK){
-				return (float)5.05;
-			}
-			if(theirs == RobotType.SCOUT){
-				return (float)2.05;
-			}
-			if(theirs == RobotType.SOLDIER || theirs == RobotType.TANK || theirs == RobotType.SCOUT){
-				return (float)12.05;
-			}
+		switch (ours){
+			case ARCHON: case GARDENER:
+				return (float)7.0;
+			case LUMBERJACK:
+				switch (theirs){
+					case ARCHON: case GARDENER: case LUMBERJACK: case SCOUT: case SOLDIER:
+						return (float)2.05;
+					case TANK:
+						return (float)3.05;
+				}
+			case SCOUT:
+				switch (theirs){
+					case ARCHON:
+						return (float)3.05;
+					case GARDENER:case SCOUT:
+						return (float)2.05;
+					case LUMBERJACK:
+						return (float)5.05;
+					case SOLDIER: case TANK:
+						return (float)12.05;
+				}
+			case SOLDIER:
+				switch (theirs){
+					case ARCHON: case GARDENER: case SCOUT:
+						return (float)2.05;
+					case LUMBERJACK: case SOLDIER:
+						return (float)3.55;
+					case TANK:
+						return (float)6.05;
+				}
+			case TANK:
+				switch (theirs){
+					case ARCHON: case GARDENER: case LUMBERJACK: case SCOUT: case SOLDIER:
+						return (float)3.05;
+					case TANK:
+						return (float)4.05;
+				}
 		}
-		if(ours == RobotType.LUMBERJACK){
-			if(theirs == RobotType.TANK){
-				return (float)3.05;
-			}
-			else{
-				return (float)2.05;
-			}
-		}
-		if(ours == RobotType.SOLDIER){
-			if(theirs == RobotType.SCOUT || theirs == RobotType.ARCHON || theirs == RobotType.GARDENER){
-				return (float)2.05;
-			}
-			if(theirs == RobotType.SOLDIER || theirs == RobotType.LUMBERJACK){
-				return (float)3.55;
-			}
-			if(theirs == RobotType.TANK){
-				return (float)6.05;
-			}
-		}
-		if(ours == RobotType.ARCHON || ours == RobotType.GARDENER){
-			return (float)7.0;
-		}
-		if(ours == RobotType.TANK){
-			if(theirs == RobotType.TANK){
-				return (float)4.05;
-			}
-			else{
-				return (float)3.05;
-			}
-		}
+		// Something fucked up, perchance...
 		return (float)0;
 	}
 
 	/**
-	 *
-	 * @param ours
-	 * @param theirs
-	 * @return
+	 * @param ours (RobotType) type of friendly unit querying this function
+	 * @param theirs (RobotType) enemy unit being queried
+	 * @return (int) priority code of enemy unit for targeting purposes
+	 * 				-- lower priority code is prioritized higher
 	 */
 
 	static int getPriority(RobotType ours, RobotType theirs){
-		if(ours == RobotType.SCOUT){
-			if(theirs == RobotType.GARDENER){
-				return 1;
-			}
-			if(theirs == RobotType.LUMBERJACK){
-				return 10;
-			}
-			if(theirs == RobotType.ARCHON){
-				return 20;
-			}
-			if(theirs == RobotType.SOLDIER || theirs == RobotType.TANK){
-				return 50;
-			}
-			if(theirs == RobotType.SCOUT){
-				return 100;
-			}
+		switch(ours){
+			case ARCHON:case GARDENER:
+				return 0;
+			case LUMBERJACK:case SOLDIER:case TANK:
+				switch(theirs){
+					case ARCHON:
+						return 5;
+					case GARDENER:
+						return 4;
+					case LUMBERJACK: case SOLDIER: case TANK:
+						return 2;
+					case SCOUT:
+						return 1;
+				}
+			case SCOUT:
+				switch(theirs){
+					case ARCHON:
+						return 20;
+					case GARDENER:
+						return 1;
+					case LUMBERJACK:
+						return 10;
+					case SCOUT:
+						return 100;
+					case SOLDIER:case TANK:
+						return 50;
+				}
 		}
-		if(ours == RobotType.SOLDIER || ours == RobotType.TANK || ours == RobotType.LUMBERJACK){
-			if(theirs == RobotType.SCOUT){
-				return 1;
-			}
-			if(theirs == RobotType.SOLDIER || theirs == RobotType.TANK || theirs == RobotType.LUMBERJACK){
-				return 2;
-			}
-			if(theirs == RobotType.ARCHON){
-				return 5;
-			}
-			if(theirs == RobotType.GARDENER){
-				return 4;
-			}
-		}
-		if(ours == RobotType.ARCHON || ours == RobotType.GARDENER){
-			return 0;
-		}
+		// Something fucked up, perchance...
 		return 0;
 	}
 
 	/**
-	 *
-	 * @param center
-	 * @param radius
-	 * @param start
-	 * @param end
-	 * @return
+	 * @param center (MapLocation) location of center of circle
+	 * @param radius (float) radius of circle
+	 * @param start (MapLocation) line segment start
+	 * @param end (MapLocation) line segment end
+	 * @return (boolean) determines if the line segment with endpoints "start" and "end"
+	 * 					intersects the interior (not just boundary) of the circle
+	 * 					centered at "center" with radius "radius"
 	 * @throws GameActionException
 	 */
 
@@ -645,7 +666,7 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
+	 * Finds all neutral trees that the robot can shake; shakes the tree with the most bullets.
 	 * @throws GameActionException
 	 */
 
@@ -679,7 +700,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
+	 * If we have more than 40 robots, or we are at 2800 rounds, or we have enough bullets to win,
+	 * donate as many bullets as we can.
 	 * @throws GameActionException
 	 */
 
@@ -698,8 +720,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
-	 *
-	 * @return
+	 * @return (Direction) randomly chosen Direction, produced from rotating absolute_right by an integer
+	 * 					number of times by 2*PI/num_angles.
 	 */
 
 

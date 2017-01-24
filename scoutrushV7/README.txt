@@ -2,6 +2,21 @@
 Version History for scoutrushV7
 ===============================
 
+VERSION 7.2.3
+1/23/2017 23:30 mwabbitt
+Changes:
+	ROBOTPLAYER.JAVA
+	* Added specifications to every helper function
+	* Changed various helpers to use switch statements instead of repeated if statements
+
+VERSION 7.2.2
+1/21/2017 16:35 mwabbitt
+Changes:
+	LUMBERJACK.JAVA
+	* Fixed bugs where lumberjacks occasionally time out
+	* If lumberjacks are chasing enemies but are unable to move, they now attempt to cut down any nearby trees in case they’re getting stuck on them
+	* Lumberjacks now refrain from straying too far from spawn. If roundNum < 15 * distance, they start retreating until roundnum < 7.5 * distance.
+
 VERSION 7.2.1
 1/19/2017 19:14 alexkatz
 Changes:
