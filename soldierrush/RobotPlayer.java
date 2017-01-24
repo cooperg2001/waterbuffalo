@@ -117,6 +117,8 @@ public strictfp class RobotPlayer {
 
 	/**
 	 *  HELPER FUNCTIONS LIST --
+	 *  DistanceToLine
+	 *  bugPathToLoc
 	 *  shotWillHit
 	 *  get_best_location
 	 *  get_priority_target
@@ -132,6 +134,94 @@ public strictfp class RobotPlayer {
 	 *  checkForStockpile
 	 *  randomDirection
 	 **/
+
+	/**
+	 * DistanceToLine
+	 *
+	 * @param query_point (MapLocation) direction in which robot previously moved
+	 * @param line_start (MapLocation) start of line segment
+	 * @param line_end (MapLocation) end of line segment
+	 * @return (float) distance from query_point to line
+	 */
+
+	public static float DistanceToLine(MapLocation query_point,
+					     MapLocation line_start,
+					     MapLocation line_end){
+		// Find area of triangle, solve for height from query to line
+		// Area found from Shoelace thm
+		float Area = Math.abs((0.5)*(line_start.x*line_end.y
+					    +line_end.x*query_point.y
+					    +query_point.x*line_start.y
+					    -line_start.y*line_end.x
+					    -line_end.y*query_point.x
+					    -query_point.y*line_start.x));
+		side_length = line_start.distanceTo(line_end);
+		height = 2.0 * Area / side_length;
+		return height;
+	}
+
+
+	/**
+	 * bugPathToLoc
+	 *
+	 * Function executes bug-pathing detailed in Slide 18 here:
+	 * https://www.cs.cmu.edu/~motionplanning/lecture/Chap2-Bug-Alg_howie.pdf
+	 * Function both moves the robot and returns its positions before and after the move.
+	 * 	-- NOTE: helper function must be paired with a running tally of closest point on m_line;
+	 *		in other words, book-keeping for bug-pathing must be done in unit logic.
+	 * @param previous_velocity (Direction) direction in which robot previously moved
+	 * @param m_start (MapLocation) point at which m_line starts -- where bugPathToLoc was first called
+	 * @param m_end (MapLocation) endpoint of m_line -- destination of path
+	 * @param closest_point (MapLocation) point on m_line closest to destination we've been to so far
+	 * @return (MapLocation[]) array with position before movement [0] and position after movement [1].
+	 */
+	
+	public static MapLocation[] bugPathToLoc(Direction previous_velocity,
+					     MapLocation m_start,
+					     MapLocation m_end,
+					     MapLocation closest_point){
+		MapLocation previous_location = rc.getLocation();
+		MapLocation new_location = null;
+		// If we are on the line, and as close as the closest point we've been at so far, we attempt to move on the line.
+		if (DistanceToLine(previous_location, m_start, m_end) < 0.5
+		   && previous_location.distanceTo(m_end)-closest_point.distanceTo(m_end)<0.5
+		   && rc.canMove(previous_location.directionTo(m_end))){
+			rc.move(previous_location.directionTo(m_end));
+			new_location = rc.getLocation();
+		}
+		else{
+			// Either we're not on the line or we've come across an obstacle.
+			// Scan angles from where we just moved from working counterclockwise, until we sense an obstacle
+			boolean obstacle_found = false;
+			Direction potential_direction = null;
+			// Dummy variable
+			int i = -1;
+			while (!obstacle_found){
+				i += 1;
+				potential_direction = previous_velocity.rotateRightDegrees((float)180.0-(float)360.0*i/num_angles);
+				if (!rc.canMove(potential_direction)){
+					// We've found the obstacle
+					obstacle_found = true;
+				}
+			}
+			// Keep scanning until we stop sensing the obstacle
+			boolean egress_fond = false;
+			while (!egress_found){
+				i += 1;
+				potential_direction = previous_velocity.rotateRightDegrees((float)180.0-(float)360.0*i/num_angles);
+				if (rc.canMove(potential_direction)){
+					// We've found a method of egress
+					egress_found = true;
+				}
+			}
+			if (potential_direction != null){
+				rc.move(potential_direction);
+				new_location = rc.getLocation();
+			}
+			MapLocation[] beforeAfterPositions = {previous_location, new_location};
+			return beforeAfterPositions;
+		}
+	}
 
 
 	/**
