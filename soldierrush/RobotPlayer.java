@@ -243,34 +243,19 @@ public strictfp class RobotPlayer {
 
 	public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
 		MapLocation bullet_hit_location = target.getLocation().add(target.getLocation().directionTo(loc), target.getType().bodyRadius);
-		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), 1);
+		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), (float)rc.getType().bodyRadius + 0.01f);
 
 		for(int i = 0; i < robots.length; i++){
-			if(bullet_hit_location.distanceTo(robots[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
+			if(robots[i].getTeam() == RobotPlayer.ENEMY){
 				continue;
 			}
-			if(bullet_hit_location.distanceTo(robots[i].getLocation()) < 1.01){
-				continue;
-			}
-			if(bullet_start_location.distanceTo(robots[i].getLocation()) < 1.01){
-				continue;
-			}
-			if(CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, loc, bullet_hit_location)){
+			if(CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, bullet_start_location, bullet_hit_location)){
 				return false;
 			}
 		}
 
 		for(int i = 0; i < trees.length; i++){
-			if(bullet_hit_location.distanceTo(trees[i].getLocation()) > bullet_hit_location.distanceTo(loc) - 0.01){
-				continue;
-			}
-			if(bullet_hit_location.distanceTo(trees[i].getLocation()) < 1){
-				continue;
-			}
-			if(bullet_start_location.distanceTo(trees[i].getLocation()) < 1.01){
-				continue;
-			}
-			if(CircleIntersectsLine(trees[i].getLocation(), trees[i].getRadius(), loc, bullet_hit_location)){
+			if(CircleIntersectsLine(trees[i].getLocation(), trees[i].getRadius(), bullet_start_location, bullet_hit_location)){
 				return false;
 			}
 		}
@@ -444,9 +429,8 @@ public strictfp class RobotPlayer {
 	 * @return (MapLocation) best position to move to so we can shoot at the robot without being in harm's way
 	 * @throws GameActionException
 	 */
-
+	 
 	static MapLocation getBestShootingLocation(RobotInfo priority_target) throws GameActionException{
-
 		// Find distance the robot SHOULD be away from the enemy
 		float optimalDist = getOptimalDist(rc.getType(), priority_target.getType());
 
@@ -469,58 +453,13 @@ public strictfp class RobotPlayer {
 			}
 
 			MapLocation potential_shooting_loc = priority_target.getLocation().add(potential_dir, optimalDist);
-			MapLocation step_towards_shooting_loc = rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), Math.min(rc.getLocation().distanceTo(potential_shooting_loc), rc.getType().strideRadius));
-			MapLocation small_step_towards_shooting_loc = rc.getLocation().add(rc.getLocation().directionTo(potential_shooting_loc), Math.min(rc.getLocation().distanceTo(potential_shooting_loc), (float)rc.getType().bulletSpeed - (float)rc.getType().bodyRadius - (float)0.1));
-			/*MapLocation midpoint = priority_target.getLocation().add(potential_dir, optimalDist / 2);
-			if(rc.senseNearbyRobots(midpoint, optimalDist / 2 - (float)1.1, null).length > 0){
-				continue;
-			}
-			if(rc.senseNearbyTrees(midpoint, optimalDist / 2 - (float)1.1, null).length > 0){
-				continue;
-			}*/
-			/*if(step_towards_shooting_loc.distanceTo(priority_target.getLocation()) < optimalDist + 1 && !shotWillHit(potential_shooting_loc, priority_target)){
-				continue;
-			}*/
-
-			boolean will_add_step = true;
-			boolean will_add_small_step = true;
-
-			// Make sure we don't hit any bullets if we go there
-			for(int j = 0; j < bullets.length; j++){
-				if(Clock.getBytecodeNum() > 8000){
-					return INVALID_LOCATION;
-				}
-				if(CircleIntersectsLine(step_towards_shooting_loc, rc.getType().bodyRadius + (float)0.02, bullets[j].getLocation(), bullets[j].getLocation().add(bullets[j].getDir(), bullets[j].getSpeed()))){
-					will_add_step = false;
-				}
-				if(CircleIntersectsLine(small_step_towards_shooting_loc, rc.getType().bodyRadius + (float)0.02, bullets[j].getLocation(), bullets[j].getLocation().add(bullets[j].getDir(), bullets[j].getSpeed()))){
-					will_add_small_step = false;
-				}
-			}
-
-			// Check if moving there will result in being too close to a lumberjack or soldier
-			for(int j = 0; j < robots.length; j++){
-				if(robots[j].getType() == RobotType.LUMBERJACK || robots[j].getType() == RobotType.SOLDIER){
-					if(rc.getType() == RobotType.SCOUT && step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 4.55){
-						will_add_step = false;
-					}
-				}
-				if(robots[j].getType() == RobotType.LUMBERJACK || robots[j].getType() == RobotType.SOLDIER){
-					if(rc.getType() == RobotType.SCOUT && step_towards_shooting_loc.distanceTo(robots[j].getLocation()) < 4.55){
-						will_add_small_step = false;
-					}
-				}
-			}
-			if(will_add_step){
-				return step_towards_shooting_loc;
-			}
-			if(will_add_small_step){
-				return small_step_towards_shooting_loc;
+			if(rc.canMove(potential_shooting_loc) && shotWillHit(potential_shooting_loc, priority_target)){
+				return potential_shooting_loc;
 			}
 		}
 
 		return INVALID_LOCATION;
-	}
+	}	
 
 	/**
 	 * @return (Location) a location that is out of the way of each bullet the robot has senced
@@ -685,13 +624,15 @@ public strictfp class RobotPlayer {
 			case LUMBERJACK:case SOLDIER:case TANK:
 				switch(theirs){
 					case ARCHON:
+						return 10;
+					case SCOUT:
 						return 5;
 					case GARDENER:
 						return 4;
-					case LUMBERJACK: case SOLDIER: case TANK:
+					case LUMBERJACK: case TANK:
+						return 3;
+					case SOLDIER:
 						return 2;
-					case SCOUT:
-						return 1;
 				}
 			case SCOUT:
 				switch(theirs){
