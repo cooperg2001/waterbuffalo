@@ -10,6 +10,9 @@ public class CombatUnit {
         boolean sentDeathSignal = false; //have we sent out a death signal
         Direction rand = RobotPlayer.randomDirection();
 
+        Direction bugPath_previous_velocity = rand;
+        MapLocation bugPath_path_start = rc.getLocation();
+        MapLocation bugPath_closest_point = rc.getLocation();
         while(true){
             try{
                 RobotPlayer.findShakableTrees();
@@ -25,24 +28,36 @@ public class CombatUnit {
                 RobotPlayer.updateEnemiesAndBroadcast();
 
                 MapLocation target = RobotPlayer.get_best_location();
-                if(target.x != RobotPlayer.INVALID_LOCATION.x && rc.canMove(target) && !rc.hasMoved()){
-                    rc.move(target);
-                    rand = RobotPlayer.randomDirection();
-                }
-                else{
-                    if(rc.canMove(rand) && !rc.hasMoved()){
-                        rc.move(rand);
-                    }
-                    else{
-                        int trials = 0;
-                        while(!rc.canMove(rand) && trials < 10){
-                            rand = RobotPlayer.randomDirection();
-                            trials++;
-                        }
-                        if(rc.canMove(rand) && !rc.hasMoved()){
+                if(rc.getType() == RobotType.SCOUT) {
+                    if (target.x != RobotPlayer.INVALID_LOCATION.x && rc.canMove(target) && !rc.hasMoved()) {
+                        rc.move(target);
+                        rand = RobotPlayer.randomDirection();
+                    } else {
+                        if (rc.canMove(rand) && !rc.hasMoved()) {
                             rc.move(rand);
+                        } else {
+                            int trials = 0;
+                            while (!rc.canMove(rand) && trials < 10) {
+                                rand = RobotPlayer.randomDirection();
+                                trials++;
+                            }
+                            if (rc.canMove(rand) && !rc.hasMoved()) {
+                                rc.move(rand);
+                            }
                         }
                     }
+                } else {
+                    ////////////////////////
+                    // Bugpath to location
+                    MapLocation[] startAndFinish = RobotPlayer.bugPathToLoc(bugPath_previous_velocity, bugPath_path_start, target, bugPath_closest_point);
+                    MapLocation bugPath_prev_point = startAndFinish[0];
+                    MapLocation bugPath_curr_point = startAndFinish[1];
+                    bugPath_previous_velocity = bugPath_prev_point.directionTo(bugPath_curr_point);
+                    if (RobotPlayer.DistanceToLine(bugPath_curr_point, bugPath_path_start, target) < 0.5
+                            && bugPath_curr_point.distanceTo(target) < bugPath_closest_point.distanceTo(target)){
+                        bugPath_closest_point = bugPath_curr_point;
+                    }
+                    /////////////////////////
                 }
 
                 int totalEnemies = 0;
