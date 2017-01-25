@@ -5,6 +5,15 @@ Version History for soldierrushV2
 
 
 
+VERSION 3.0.1
+
+1/25/2017 15:18 mwabbitt
+
+Changes:
+	LUMBERJACK.JAVA
+	* Lumberjacks now strike whenever they can strike an enemy, undoing one of the changes from 2.0 to 3.0.
+
+
 VERSION 3.0.0
 
 

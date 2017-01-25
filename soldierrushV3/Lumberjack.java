@@ -122,10 +122,7 @@ public class Lumberjack {
                         RobotInfo enemy = their_robots[0];
                         if (enemy.getLocation().distanceTo(current_location) - enemy.getRadius() < 2
                                 && rc.canStrike()){
-                            if (our_robots.length == 0
-                                    || our_robots[0].getLocation().distanceTo(current_location) > 2 + our_robots[0].getRadius()) {
-                                rc.strike();
-                            }
+                            rc.strike();
                         }
 
                         // If haven't done anything yet, it's blocked by stuff. See if it can chop down a tree.
@@ -241,50 +238,58 @@ public class Lumberjack {
                         // If adjacent to priority_target but not an ally, strike
                         if (priority_target.getLocation().distanceTo(current_location) - priority_target.getRadius() < 2
                                 && rc.canStrike()){
-                            if (our_robots.length == 0
-                                    || our_robots[0].getLocation().distanceTo(current_location) > 2 + our_robots[0].getRadius()) {
-                                rc.strike();
-                            }
+                            rc.strike();
                         }
-                    }
 
-                    if (!rc.hasAttacked()){
-                        // If we can chop down a tree, do so.
-                        boolean has_chopped = false;
-                        if (RobotPlayer.their_trees.length > 0){
-                            TreeInfo closest_tree = RobotPlayer.their_trees[0];
-                            if (rc.canChop(closest_tree.location)){
-                                rc.chop(closest_tree.location);
-                                has_chopped = true;
-                            }
-                        }
-                        if (RobotPlayer.neutral_trees.length > 0){
-                            TreeInfo closest_tree = RobotPlayer.neutral_trees[0];
-                            if (rc.canChop(closest_tree.location)){
-                                rc.chop(closest_tree.location);
-                                has_chopped = true;
-                            }
-                        }
-                        // If target invalid location, move randomly.
-                        if (target.equals(RobotPlayer.INVALID_LOCATION)){
-                            if (rc.canMove(rand) && !rc.hasMoved()) {
-                                rc.move(rand);
-                            } else {
-                                int trials = 0;
-                                while (!rc.canMove(rand) && trials < 10) {
-                                    rand = RobotPlayer.randomDirection();
-                                    trials++;
+                        if (!rc.hasAttacked()){
+                            // If we can chop down a tree, do so.
+                            boolean has_chopped = false;
+                            if (RobotPlayer.their_trees.length > 0){
+                                TreeInfo closest_tree = RobotPlayer.their_trees[0];
+                                if (rc.canChop(closest_tree.location)){
+                                    rc.chop(closest_tree.location);
+                                    has_chopped = true;
                                 }
+                            }
+                            if (RobotPlayer.neutral_trees.length > 0){
+                                TreeInfo closest_tree = RobotPlayer.neutral_trees[0];
+                                if (rc.canChop(closest_tree.location)){
+                                    rc.chop(closest_tree.location);
+                                    has_chopped = true;
+                                }
+                            }
+                            // If target invalid location, move randomly.
+                            if (target.equals(RobotPlayer.INVALID_LOCATION)){
                                 if (rc.canMove(rand) && !rc.hasMoved()) {
                                     rc.move(rand);
+                                } else {
+                                    int trials = 0;
+                                    while (!rc.canMove(rand) && trials < 10) {
+                                        rand = RobotPlayer.randomDirection();
+                                        trials++;
+                                    }
+                                    if (rc.canMove(rand) && !rc.hasMoved()) {
+                                        rc.move(rand);
+                                    }
                                 }
                             }
+                            else if (!has_chopped){
+                                RobotPlayer.bugPathToLoc(target);
+                            }
                         }
-                        else if (!has_chopped){
-                            RobotPlayer.bugPathToLoc(target);
+
+                    }
+                    else{
+                        if (rc.canMove(target)){
+                            rc.move(target);
+                        }
+                        else{
+                            if (RobotPlayer.trees.length > 0){
+                                TreeInfo closest_tree = RobotPlayer.trees[0];
+                                rc.chop(closest_tree.location);
+                            }
                         }
                     }
-
                 }
 
                 else{
