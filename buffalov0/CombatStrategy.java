@@ -1,4 +1,4 @@
-package BuffaloV0;
+package buffalov0;
 import battlecode.common.*;
 
 /**
@@ -22,9 +22,7 @@ public class CombatStrategy {
         MapLocation bullet_path_midpoint = loc.add(loc.directionTo(targetLoc), loc.distanceTo(targetLoc) / 2f);
 
         RobotInfo[] friendly_robots_near_target = RobotPlayer.rc.senseNearbyRobots(bullet_path_midpoint,loc.distanceTo(targetLoc) / 2f, RobotPlayer.FRIEND);
-        TreeInfo[] friendly_trees_near_target = RobotPlayer.rc.senseNearbyTrees(bullet_path_midpoint,loc.distanceTo(targetLoc) / 2f, RobotPlayer.FRIEND);
-        TreeInfo[] neutral_trees_near_target = RobotPlayer.rc.senseNearbyTrees(bullet_path_midpoint,loc.distanceTo(targetLoc) / 2f, RobotPlayer.NEUTRAL);
-        TreeInfo[] enemy_trees_near_target = RobotPlayer.rc.senseNearbyTrees(bullet_path_midpoint,loc.distanceTo(targetLoc) / 2f, RobotPlayer.ENEMY);
+        TreeInfo[] trees_near_target = RobotPlayer.rc.senseNearbyTrees(bullet_path_midpoint, loc.distanceTo(targetLoc) / 2f, null);
 
         for (RobotInfo robot : friendly_robots_near_target){
             if (RobotPlayer.circleIntersectsLine(robot.getLocation(), robot.getType().bodyRadius, loc, targetLoc)){
@@ -33,30 +31,13 @@ public class CombatStrategy {
             }
         }
 
-        for (TreeInfo tree : friendly_trees_near_target){
-            if (RobotPlayer.circleIntersectsLine(tree.getLocation(), tree.radius, loc, targetLoc)){
-                System.out.println("After " + Clock.getBytecodeNum());
-                return false;
+        for(TreeInfo tree : trees_near_target){
+            if((RobotPlayer.rc.getRoundNum() > 1500 || RobotPlayer.rc.getOpponentVictoryPoints() > 200)
+                    && (tree.getTeam() != RobotPlayer.FRIEND)){
+                // Should just go ahead and shoot down trees
+                continue;
             }
-        }
-		
-        for (TreeInfo tree : neutral_trees_near_target){
-			if(RobotPlayer.rc.getRoundNum() > 1500 || RobotPlayer.rc.getOpponentVictoryPoints() > 200){
-				// Should just go ahead and shoot down trees
-				continue;
-			}
-            if (RobotPlayer.circleIntersectsLine(tree.getLocation(), tree.radius, loc, targetLoc)){
-                System.out.println("After " + Clock.getBytecodeNum());
-                return false;
-            }
-        }
-
-        for (TreeInfo tree : enemy_trees_near_target){
-			if(RobotPlayer.rc.getRoundNum() > 1500 || RobotPlayer.rc.getOpponentVictoryPoints() > 200){
-				// Should just go ahead and shoot down trees
-				continue;
-			}
-            if (RobotPlayer.circleIntersectsLine(tree.getLocation(), tree.radius, loc, targetLoc)){
+            if(RobotPlayer.circleIntersectsLine(tree.getLocation(), tree.radius, loc, targetLoc)){
                 System.out.println("After " + Clock.getBytecodeNum());
                 return false;
             }
@@ -113,11 +94,17 @@ public class CombatStrategy {
      */
 
     public static RobotInfo getShootingTarget() throws GameActionException{
+        RobotInfo priorityTarget = null;
         try {
             for (int i = 0; i < RobotPlayer.enemies.length; i++) {
                 for (int j = 0; j < RobotPlayer.enemies[i].length; j++) {
                     if (shotWillHit(RobotPlayer.rc.getLocation(), RobotPlayer.enemies[i][j].getLocation())) {
-                        return RobotPlayer.enemies[i][j];
+                        if(priorityTarget == null
+                                || RobotPlayer.getPriority(RobotPlayer.rc.getType(), RobotPlayer.enemies[i][j].getType())
+                                < RobotPlayer.getPriority(RobotPlayer.rc.getType(), priorityTarget.getType())){
+                            priorityTarget = RobotPlayer.enemies[i][j];
+                        }
+                        break;
                     }
                 }
             }
@@ -125,7 +112,7 @@ public class CombatStrategy {
             System.out.println("getShootingTarget() error");
             e.printStackTrace();
         }
-        return null;
+        return priorityTarget;
     }
 
     /**
@@ -147,15 +134,13 @@ public class CombatStrategy {
             Direction dir;
 
             for (RobotInfo robot : RobotPlayer.robots) {
-                if (shotWillHit(RobotPlayer.rc.getLocation(), robot.getLocation())) {
-                    optimalDistance = RobotPlayer.getOptimalDist(RobotPlayer.rc.getType(), robot.getType());
-                    distance = ours.distanceTo(robot.getLocation());
-                    displacement = distance - optimalDistance;
-                    dir = ours.directionTo(robot.getLocation());
-                    if(displacement < 0 || robot.equals(target)) {
-                        force[0] += SPRING_CONSTANT * displacement * Math.cos(dir.radians);
-                        force[1] += SPRING_CONSTANT * displacement * Math.sin(dir.radians);
-                    }
+                optimalDistance = RobotPlayer.getOptimalDist(RobotPlayer.rc.getType(), robot.getType());
+                distance = ours.distanceTo(robot.getLocation());
+                displacement = distance - optimalDistance;
+                dir = ours.directionTo(robot.getLocation());
+                if(displacement < 0 || robot.equals(target)) { //Only consider robots we are too close too, or if it's our target
+                    force[0] += SPRING_CONSTANT * displacement * Math.cos(dir.radians);
+                    force[1] += SPRING_CONSTANT * displacement * Math.sin(dir.radians);
                 }
             }
             return new MapLocation(ours.x + force[0], ours.y + force[1]);

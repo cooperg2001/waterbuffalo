@@ -1,4 +1,4 @@
-package BuffaloV0;
+package buffalov0;
 import battlecode.common.*;
 
 public strictfp class RobotPlayer {
