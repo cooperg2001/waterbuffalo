@@ -119,8 +119,7 @@ public class Gardener {
                 }
                 if(should_build_tree
                         && rc.getRoundNum() > 40
-                        && (rc.getTreeCount() < gardener_ct * RobotPlayer.getTreeToGardenerRatio()
-                            || tree_ct * RobotPlayer.getArmyToTreeRatio() < (soldier_ct+lumberjack_ct+tank_ct)
+                        && (tree_ct * RobotPlayer.getArmyToTreeRatio() < (soldier_ct+lumberjack_ct+tank_ct)
                             || rc.getTeamBullets() > 150)){
                     // Leave a location open to build combat units in, and don't build a tree if our army is weak
                     // System.out.println("Building tree...");
@@ -153,18 +152,28 @@ public class Gardener {
 								&& (rc.getRoundNum() > 1000 || rc.getTeamBullets() > 300 || soldier_ct > 6)){
 							rc.buildRobot(RobotType.TANK, next_build);
 						}
+                    }
+					
+					for(int i = 0; i < RobotPlayer.num_angles; i++){
+                        Direction next_build;
+                        if(i % 2 == 0){
+                            next_build = RobotPlayer.forward.rotateLeftRads((int)(i + 1)/2 * gardener_angle_gradient);
+                        }
+                        else{
+                            next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
+                        }
                         if(lumberjack_ct < 20
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
                                 && (soldier_ct >= 4 * lumberjack_ct + 2
                                     || ((rc.senseNearbyTrees(2, RobotPlayer.NEUTRAL).length > 0) && soldier_ct > 2 * lumberjack_ct))
-                                && rc.getRoundNum() < 1000){
+                                ){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
                             rc.broadcast(902, rc.readBroadcast(902) + 1);
                         }
 
                         if((soldier_ct < 20)
                                 && rc.canBuildRobot(RobotType.SOLDIER, next_build)
-								&& rc.getRoundNum() < 1000){
+								){
                             rc.buildRobot(RobotType.SOLDIER, next_build);
                             rc.broadcast(904, rc.readBroadcast(904) + 1);
                         }
