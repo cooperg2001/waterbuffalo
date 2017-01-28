@@ -73,7 +73,7 @@ public class CombatUnit {
                         if (rc.canFirePentadShot() && dist < 6 && rc.getTeamBullets() > 20) {
                             rc.firePentadShot(rc.getLocation().directionTo(targetLoc));
                         }
-                        if (rc.canFireTriadShot() && dist < 6) {
+                        if (rc.canFireTriadShot() && dist < 8) {//i don't think 8's a useful number, but has to be >6 because tanks
                             rc.fireTriadShot(rc.getLocation().directionTo(targetLoc));
                         }
                         if (rc.canFireSingleShot()) {
