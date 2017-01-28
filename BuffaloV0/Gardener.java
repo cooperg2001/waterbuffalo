@@ -78,11 +78,12 @@ public class Gardener {
                  */
                 boolean should_build_tree = false;
                 int unoccupied_max = 0;
-                int unoccupied_min = 23;
+                int unoccupied_min = RobotPlayer.num_angles - 1;
                 int unoccupied_rotated_max = 0;
-                int unoccupied_rotated_min = 23;
+                int unoccupied_rotated_min = RobotPlayer.num_angles - 1;
                 MapLocation check;
                 for(int i = 0; i < RobotPlayer.num_angles; i++){
+                    int j = (i + RobotPlayer.num_angles / 3) & (RobotPlayer.num_angles);
                     Direction next_build = RobotPlayer.backward.rotateLeftRads(i * gardener_angle_gradient);
                     check = rc.getLocation().add(next_build, 2);
                     if(!rc.isCircleOccupiedExceptByThisRobot(check, 1) && rc.onTheMap(check, 1)){
@@ -90,19 +91,19 @@ public class Gardener {
                         if (i > unoccupied_max){
                             unoccupied_max = i;
                         }
-                        if ((i + 8) % 24 > unoccupied_rotated_max){
-                            unoccupied_rotated_max = (i + 8) % 24;
+                        if (j > unoccupied_rotated_max){
+                            unoccupied_rotated_max = j;
                         }
                         if (i < unoccupied_min){
                             unoccupied_min = i;
                         }
-                        if ((i + 8) % 24 < unoccupied_rotated_min){
-                            unoccupied_rotated_min = (i + 8) % 24;
+                        if (j < unoccupied_rotated_min){
+                            unoccupied_rotated_min = j;
                         }
                     }
                 }
-                if (unoccupied_max - unoccupied_min < 4
-                        || unoccupied_rotated_max - unoccupied_rotated_min < 4){
+                if (unoccupied_max - unoccupied_min < RobotPlayer.num_angles / 6
+                        || unoccupied_rotated_max - unoccupied_rotated_min < RobotPlayer.num_angles / 6){
                     should_build_tree = false;
                     rc.setIndicatorDot(rc.getLocation(), 255, 0, 0);
                     gardenerCounter++;
@@ -150,21 +151,21 @@ public class Gardener {
 						
 						if(tank_ct < 20
 						        && rc.canBuildRobot(RobotType.TANK, next_build)
-								&& (rc.getRoundNum() > 1000 || rc.getTeamBullets() > 300 || soldier_ct > 6)){
+								&& (rc.getRoundNum() > 1000 || rc.getTeamBullets() > 300 || soldier_ct > 4)){
 							rc.buildRobot(RobotType.TANK, next_build);
 						}
                         if(lumberjack_ct < 20
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
                                 && (soldier_ct >= 4 * lumberjack_ct + 2
                                     || ((rc.senseNearbyTrees(4, RobotPlayer.NEUTRAL).length > 0) && soldier_ct > 2 * lumberjack_ct))
-                                && rc.getRoundNum() < 1000){
+                                && rc.getRoundNum() < 1000 ){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
                             rc.broadcast(902, rc.readBroadcast(902) + 1);
                         }
 
                         if((soldier_ct < 20)
                                 && rc.canBuildRobot(RobotType.SOLDIER, next_build)
-								&& rc.getRoundNum() < 1000){
+								&& rc.getRoundNum() < 1000 ){
                             rc.buildRobot(RobotType.SOLDIER, next_build);
                             rc.broadcast(904, rc.readBroadcast(904) + 1);
                         }

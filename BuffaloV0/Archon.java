@@ -102,24 +102,24 @@ public class Archon {
                     }
                 }
 
+                /*
                 MapLocation target = RobotPlayer.get_best_location();
                 if(!target.equals(RobotPlayer.INVALID_LOCATION) && rc.canMove(target) && !rc.hasMoved()){
                     rc.move(target);
                     rand = RobotPlayer.randomDirection();
                 }
+                */
+                if(rc.canMove(rand) && !rc.hasMoved()){
+                    rc.move(rand);
+                }
                 else{
+                    int trials = 0;
+                    while(!rc.canMove(rand) && trials < 10){
+                        rand = RobotPlayer.randomDirection();
+                        trials++;
+                    }
                     if(rc.canMove(rand) && !rc.hasMoved()){
                         rc.move(rand);
-                    }
-                    else{
-                        int trials = 0;
-                        while(!rc.canMove(rand) && trials < 10){
-                            rand = RobotPlayer.randomDirection();
-                            trials++;
-                        }
-                        if(rc.canMove(rand) && !rc.hasMoved()){
-                            rc.move(rand);
-                        }
                     }
                 }
                 if(didBuildGardener){

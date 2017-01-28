@@ -1,13 +1,29 @@
-=================================
-Version History for soldierrushV5
-=================================
+=============================
+Version History for BuffaloV0
+=============================
 
-VERSION 4.0
-1/26/2017 18:40 mwabbitt
+VERSION 0.1
+1/28/2017 12:13 mwabbitt
 
 Changes:
-	General
-	— Our economy has massively improved. Gardener construction and tree planting is now dictated by several ratios in ROBOTPLAYER.JAVA.
-	
+	ARCHON.JAVA
+	* No longer moves with get_best_location
+
 	GARDENER.JAVA
-	— Gardeners now, for most of the match, try to navigate away from trees before they set up shop.
+	* Removes magic numbers in calculation of should_build_tree
+
+	ROBOTPLAYER.JAVA
+	* Revamps bugpathing
+	* Fix center calculation
+	* All helper function names changed to camelcase with no underscores
+	
+	COMBATSTRATEGY.JAVA
+	* shotWillHit is now overloaded: Second input can either be a MapLocation or a RobotInfo.
+
+
+VERSION 0.0
+1/27/2017 3:00 zobsniuk
+The beginning of a revamp of the combat strategy code
+
+Changes:
+	* Creates CombatStrategy.java

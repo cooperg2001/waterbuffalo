@@ -30,22 +30,32 @@ public strictfp class RobotPlayer {
 	static BulletInfo[] bullets;
 	static MapLocation last_sighting_location[];
 
+	// Bugpathing variables
+	static Direction bugPath_previous_velocity;
+	static MapLocation bugPath_closest_point;
+	static MapLocation bugPath_path_destination;
+	static int bugPath_algorithm_status;
+	static int bugPath_patience;
+
 
 	/**
 	 * BROADCAST DIRECTORY
-	 * 500 - last observed location of ENEMY archon target
-	 * 501 - last observed location of ENEMY gardener target
-	 * 502 - last observed location of ENEMY lumberjack target
-	 * 503 - last observed location of ENEMY scout target
-	 * 504 - last observed location of ENEMY soldier target
-	 * 505 - last observed location of ENEMY tank target
 	 *
-	 * 900 - estimated # of FRIEND archons
-	 * 901 - estimated # of FRIEND gardeners
-	 * 902 - estimated # of FRIEND lumberjacks
-	 * 903 - estimated # of FRIEND scouts
-	 * 904 - estimated # of FRIEND soldiers
-	 * 905 - estimated # of FRIEND tanks
+	 * [500,505] - last observed location of ENEMY unit
+	 * 500 - archon
+	 * 501 - gardener
+	 * 502 - lumberjack
+	 * 503 - scout
+	 * 504 - soldier
+	 * 505 - tank
+	 *
+	 * [900,905] - estimated # of FRIEND units
+	 * 900 - archons
+	 * 901 - gardeners
+	 * 902 - lumberjacks
+	 * 903 - scouts
+	 * 904 - soldiers
+	 * 905 - tanks
 	 */
 
     /**
@@ -66,7 +76,7 @@ public strictfp class RobotPlayer {
 		RobotPlayer.left = forward.rotateLeftDegrees(90);
 		RobotPlayer.backward = left.rotateLeftDegrees(90);
 		RobotPlayer.right = backward.rotateLeftDegrees(90);
-		RobotPlayer.absolute_up = new Direction((float)(float)Math.PI/2);
+		RobotPlayer.absolute_up = new Direction((float) Math.PI/2);
 		RobotPlayer.absolute_left = absolute_up.rotateLeftDegrees(90);
 		RobotPlayer.absolute_down = absolute_left.rotateLeftDegrees(90);
 		RobotPlayer.absolute_right = absolute_down.rotateLeftDegrees(90);
@@ -86,7 +96,16 @@ public strictfp class RobotPlayer {
 		for(int i = 0; i < num_angles; i++){
 			potential_angles[i] = i * 2 * (float)Math.PI / num_angles;
 		}
-		center = new MapLocation(centerx / our_archons.length, centery / our_archons.length);
+		center = new MapLocation(centerx / (2 * our_archons.length), centery / (2 * our_archons.length));
+
+		/**
+		 * Bugpathing variable initialization
+		 */
+		RobotPlayer.bugPath_previous_velocity = randomDirection();
+		RobotPlayer.bugPath_closest_point = rc.getLocation();
+		RobotPlayer.bugPath_path_destination = rc.getLocation();
+		RobotPlayer.bugPath_algorithm_status = 0;
+		RobotPlayer.bugPath_patience = 0;
 
 
 
@@ -124,11 +143,11 @@ public strictfp class RobotPlayer {
 	 *  getArmyToTreeRatio
 	 *  getArmyToGardenerRatio
 	 *  getTreeToGardenerRatio
-	 *  DistanceToLine
+	 *  distanceToLine
 	 *  bugPathToLoc
 	 *  shotWillHit
-	 *  get_best_location
-	 *  get_priority_target
+	 *  getBestLocation
+	 *  getPriorityTarget
 	 *  updateEnemiesAndBroadcast
 	 *  getBestShootingLocation
 	 *  dodgeBullets
@@ -136,7 +155,7 @@ public strictfp class RobotPlayer {
 	 *  typeToInt
 	 *  getOptimalDist
 	 *  getPriority
-	 *  CircleIntersectsLine
+	 *  circleIntersectsLine
 	 *  findShakableTrees
 	 *  checkForStockpile
 	 *  randomDirection
@@ -150,7 +169,7 @@ public strictfp class RobotPlayer {
 	 */
 
 	public static float getArmyToTreeRatio(){
-		return (float)1.0 + (float)0.0005 * rc.getRoundNum();
+		return 1.0f + 0.0005f * rc.getRoundNum();
 	}
 
 	/**
@@ -173,13 +192,13 @@ public strictfp class RobotPlayer {
 
 
 	public static float getTreeToGardenerRatio(){
-		return (float)2.1;
+		return 2.1f;
 	}
 
 
 
 	/**
-	 * DistanceToLine
+	 * distanceToLine
 	 *
 	 * @param query_point (MapLocation) direction in which robot previously moved
 	 * @param line_start (MapLocation) start of line segment
@@ -187,19 +206,19 @@ public strictfp class RobotPlayer {
 	 * @return (float) distance from query_point to line
 	 */
 
-	public static float DistanceToLine(MapLocation query_point,
+	public static float distanceToLine(MapLocation query_point,
 					     MapLocation line_start,
 					     MapLocation line_end){
 		// Find area of triangle, solve for height from query to line
 		// Area found from Shoelace thm
-		float Area = Math.abs((float)(0.5)*(line_start.x*line_end.y
+		float Area = Math.abs(0.5f*(line_start.x*line_end.y
 						+line_end.x*query_point.y
 					    +query_point.x*line_start.y
 					    -line_start.y*line_end.x
 					    -line_end.y*query_point.x
 					    -query_point.y*line_start.x));
 		float side_length = line_start.distanceTo(line_end);
-		float height = (float)2.0 * Area / side_length;
+		float height = 2.0f * Area / side_length;
 		return height;
 	}
 
@@ -207,106 +226,120 @@ public strictfp class RobotPlayer {
 	/**
 	 * bugPathToLoc
 	 *
-	 * Function executes bug-pathing detailed in Slide 18 here:
-	 * https://www.cs.cmu.edu/~motionplanning/lecture/Chap2-Bug-Alg_howie.pdf
-	 * Function both moves the robot and returns its positions before and after the move.
-	 * 	-- NOTE: helper function must be paired with a running tally of closest point on m_line;
-	 *		in other words, book-keeping for bug-pathing must be done in unit logic.
+	 * Function executes bug-pathing.
+	 * Algorithm -- Keep running tally of closest point it's been to the target.
+	 * If it's the closest it's ever been, keep going toward the target.
+	 * If it can't, then circumvent the obstacle until we're closer than we've ever been again, and keep going to the target.
 	 *
-	 * @param previous_velocity (Direction) direction in which robot previously moved
-	 * @param m_start (MapLocation) point at which m_line starts -- where bugPathToLoc was first called
-	 * @param m_end (MapLocation) endpoint of m_line -- destination of path
-	 * @param closest_point (MapLocation) point on m_line closest to destination we've been to so far
-	 * @return (MapLocation[]) array with position before movement [0] and position after movement [1].
+	 * Resets the algorithm every 100 turns.
+	 *
+	 * @param target (MapLocation) where to bugpath towards
+	 *  -- Uses the four bugpathing variables declared above
 	 */
-	
-	public static MapLocation[] bugPathToLoc(Direction previous_velocity,
-					     MapLocation m_start,
-					     MapLocation m_end,
-					     MapLocation closest_point){
+
+	public static void bugPathToLoc(MapLocation target){
 		try {
+			if (!RobotPlayer.bugPath_path_destination.equals(target)){
+				RobotPlayer.bugPath_path_destination = target;
+				RobotPlayer.bugPath_closest_point = rc.getLocation();
+				RobotPlayer.bugPath_algorithm_status = 0;
+			}
+			if (rc.getRoundNum() % 100 == 0){
+				RobotPlayer.bugPath_closest_point = rc.getLocation();
+				RobotPlayer.bugPath_algorithm_status = 0;
+			}
+			Direction previous_velocity = RobotPlayer.bugPath_previous_velocity;
+			MapLocation closest_point = RobotPlayer.bugPath_closest_point;
 			MapLocation previous_location = rc.getLocation();
-			MapLocation new_location = null;
-			// If we are on the line, and as close as the closest point we've been at so far, we attempt to move on the line.
-			if (DistanceToLine(previous_location, m_start, m_end) < 0.5
-					&& previous_location.distanceTo(m_end) - closest_point.distanceTo(m_end) < 0.5
-					&& rc.canMove(previous_location.directionTo(m_end))) {
-				rc.move(previous_location.directionTo(m_end));
-				new_location = rc.getLocation();
-			} else {
-				// Either we're not on the line or we've come across an obstacle.
-				// Scan angles from where we just moved from working counterclockwise, until we sense an obstacle
-				boolean obstacle_found = false;
-				Direction potential_direction = null;
-				// Dummy variable
-				int i = -1;
-				while (!obstacle_found) {
-					i += 1;
-					potential_direction = previous_velocity.rotateRightDegrees((float) 180.0 - (float) 360.0 * i / num_angles);
-					if (!rc.canMove(potential_direction)) {
-						// We've found the obstacle
-						obstacle_found = true;
+			if (target.equals(rc.getLocation())){
+				// We're done bugpathing and don't need to move
+			}
+			else {
+				/**
+				 * STATUS DESIGNATIONS
+				 * 0 - Closest it's ever been, not blocked
+				 * 1 - Blocked, working its way around
+				 */
+
+				// Update Status
+				if (previous_location.distanceTo(target) <= closest_point.distanceTo(target)){
+					RobotPlayer.bugPath_closest_point = previous_location;
+					if (rc.canMove(target)) {
+						// We're as close as ever and nothing is stopping us now!
+						RobotPlayer.bugPath_algorithm_status = 0;
+					}
+					else{
+						// We just found an obstacle - turn to the left and try to circumvent it
+						RobotPlayer.bugPath_algorithm_status = 1;
+						for (int i = 0; i < num_angles; i++){
+							Direction potential_direction = previous_velocity.rotateLeftDegrees(360.0f * i / num_angles);
+							if (rc.canMove(potential_direction) && !rc.hasMoved()) {
+								rc.move(potential_direction);
+								RobotPlayer.bugPath_previous_velocity = previous_location.directionTo(rc.getLocation());
+							}
+						}
 					}
 				}
-				// Keep scanning until we stop sensing the obstacle
-				boolean egress_found = false;
-				while (!egress_found) {
-					i += 1;
-					potential_direction = previous_velocity.rotateRightDegrees((float) 180.0 - (float) 360.0 * i / num_angles);
-					if (rc.canMove(potential_direction)) {
-						// We've found a method of egress
-						egress_found = true;
+				else {
+					RobotPlayer.bugPath_algorithm_status = 1;
+				}
+
+				System.out.println("STATUS == " + String.valueOf(RobotPlayer.bugPath_algorithm_status));
+
+				// Move
+				if (RobotPlayer.bugPath_algorithm_status == 0){
+					// We're as close as ever and nothing is stopping us now!
+					if (!rc.hasMoved()) {
+						rc.move(target);
+						RobotPlayer.bugPath_previous_velocity = previous_location.directionTo(rc.getLocation());
 					}
 				}
-				if (potential_direction != null) {
-					rc.move(potential_direction);
-					new_location = rc.getLocation();
+				else{
+					// We're currently circumventing an obstacle.
+					// Scan angles from where we just moved from working counterclockwise, until we sense an obstacle
+					boolean obstacle_found = false;
+					Direction potential_direction = null;
+					// Dummy variable
+					int d = 0;
+					for (int i = 0; i < num_angles; i++) {
+						d = i;
+						potential_direction = previous_velocity.rotateRightDegrees(180.0f - 360.0f * i / num_angles);
+						if (!rc.canMove(potential_direction)) {
+							// We've found the obstacle
+							obstacle_found = true;
+							break;
+						}
+					}
+					if (!obstacle_found && !rc.hasMoved()){
+						rc.move(target);
+						RobotPlayer.bugPath_previous_velocity = previous_location.directionTo(rc.getLocation());
+					}
+					// Keep scanning until we stop sensing the obstacle
+					boolean egress_found = false;
+					for (int i = d; i < num_angles; i++) {
+						potential_direction = previous_velocity.rotateRightDegrees(180.0f- 360.0f * i / num_angles);
+						if (rc.canMove(potential_direction)) {
+							// We've found a method of egress
+							egress_found = true;
+							break;
+						}
+					}
+					if (egress_found && !rc.hasMoved()) {
+						rc.move(potential_direction);
+						RobotPlayer.bugPath_previous_velocity = previous_location.directionTo(rc.getLocation());
+					}
+					if (rc.getLocation().distanceTo(target) < closest_point.distanceTo(target)){
+						RobotPlayer.bugPath_closest_point = rc.getLocation();
+					}
 				}
 			}
-			MapLocation[] beforeAfterPositions = {previous_location, new_location};
-			return beforeAfterPositions;
-
 		} catch(Exception e){
 			e.printStackTrace();
 		}
-		MapLocation[] null_grid = {center, center};
-		return null_grid;
 	}
 
-
 	/**
-	 * shotWillHit
-	 *
-	 * @param loc (MapLocation) Location of rc
-	 * @param target (RobotInfo) robot to shoot
-	 * @return (boolean) whether or not a shot you shoot at an enemy will actually hit an enemy
-	 * 					-- in particular, makes sure there aren't any trees in the way
-	 * @throws GameActionException
-	 */
-
-	public static boolean shotWillHit(MapLocation loc, RobotInfo target) throws GameActionException{
-		MapLocation bullet_hit_location = target.getLocation().add(target.getLocation().directionTo(loc), target.getType().bodyRadius);
-		MapLocation bullet_start_location = loc.add(loc.directionTo(target.getLocation()), (float)rc.getType().bodyRadius + 0.01f);
-
-		for(int i = 0; i < robots.length; i++){
-			if(robots[i].getTeam() == RobotPlayer.ENEMY){
-				continue;
-			}
-			if(CircleIntersectsLine(robots[i].getLocation(), robots[i].getType().bodyRadius, bullet_start_location, bullet_hit_location)){
-				return false;
-			}
-		}
-
-		for(int i = 0; i < trees.length; i++){
-			if(CircleIntersectsLine(trees[i].getLocation(), trees[i].getRadius(), bullet_start_location, bullet_hit_location)){
-				return false;
-			}
-		}
-		return true;
-	}
-
-
-	/**
+	 * getBestLocation
 	 *
 	 * @return Best location according to heuristic
 	 * 			-- If you're a scout and it's early, rush their archons
@@ -316,7 +349,7 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 
-	public static MapLocation get_best_location() throws GameActionException {
+	public static MapLocation getBestLocation() throws GameActionException {
 		MapLocation best_location;
 
 		// If you're a scout and it's early, rush their archons, because their gardener is probably nearby
@@ -340,9 +373,9 @@ public strictfp class RobotPlayer {
 		}
 		// If we can see an enemy, move towards the one with the highest priority
 		if(totalEnemies > 0 && rc.getType() != RobotType.ARCHON){
-			RobotInfo priority_target = get_priority_target();
+			RobotInfo priority_target = getPriorityTarget();
 			best_location = getBestShootingLocation(priority_target);
-			if (best_location.x != INVALID_LOCATION.x && rc.canMove(best_location)) {
+			if (!best_location.equals(INVALID_LOCATION) && rc.canMove(best_location)) {
 				//System.out.println("Found a good shooting location, going to " + best_location + " used " + Clock.getBytecodeNum());
 				return best_location;
 			}
@@ -360,7 +393,7 @@ public strictfp class RobotPlayer {
 		//use secondary targets and find which type is the one we want to target
 		int priorityType = 0;
 		for(int i = 1; i < last_sighting_location.length; i++) {
-			if(last_sighting_location[i].x != INVALID_LOCATION.x
+			if(!last_sighting_location[i].equals(INVALID_LOCATION)
 					&& rc.canMove(last_sighting_location[i])
 					&& getPriority(rc.getType(), intToType(i)) < getPriority(rc.getType(), intToType(priorityType))) {
 				priorityType = i;
@@ -384,12 +417,14 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * getPriorityTarget
+	 *
 	 * @return (RobotInfo) the robot in RobotPlayer.enemies with the highest priority relative to rc.
 	 * 						-- If multiple robots have highest priority, chooses the first one.
 	 * @throws GameActionException
 	 */
 
-	public static RobotInfo get_priority_target() throws GameActionException{
+	public static RobotInfo getPriorityTarget() throws GameActionException{
 		RobotInfo priority_target = null; //this strange initialization is needed since enemies[0], for example, might not have length > 0, so we can't just set it to [0][0]
 		for(int i = 0; i < enemies.length; i++) {
 			if(enemies[i].length > 0) {
@@ -414,6 +449,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * updateEnemiesAndBroadcast
+	 *
 	 * Overwrites broadcast [500,505] with closest enemies of each type to robot
 	 * Sets RobotPlayer.enemies to be a matrix of all enemies seen this by this robot this tick
 	 * @throws GameActionException
@@ -467,6 +504,7 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * getBestShootingLocation
 	 *
 	 * @param priority_target (RobotInfo) enemy robot we wish to shoot at
 	 * @return (MapLocation) best position to move to so we can shoot at the robot without being in harm's way
@@ -496,7 +534,7 @@ public strictfp class RobotPlayer {
 			}
 
 			MapLocation potential_shooting_loc = priority_target.getLocation().add(potential_dir, optimalDist);
-			if(rc.canMove(potential_shooting_loc) && shotWillHit(potential_shooting_loc, priority_target)){
+			if(rc.canMove(potential_shooting_loc) && CombatStrategy.shotWillHit(potential_shooting_loc, priority_target)){
 				return potential_shooting_loc;
 			}
 		}
@@ -505,14 +543,16 @@ public strictfp class RobotPlayer {
 	}	
 
 	/**
+	 * dodgeBullets
+	 *
 	 * @return (Location) a location that is out of the way of each bullet the robot has senced
 	 * @throws GameActionException
 	 */
 
 	static MapLocation dodgeBullets() throws GameActionException{
 		//int orig_bytecodes = Clock.getBytecodeNum();
-		float vector_x = (float) 0;
-		float vector_y = (float) 0;
+		float vector_x = 0f;
+		float vector_y = 0f;
 
 		for(int i = 0; i < bullets.length; i++){
 			MapLocation new_bullet_location = bullets[i].getLocation().add(bullets[i].getDir(), 2 * bullets[i].getSpeed());
@@ -542,6 +582,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * intToType
+	 *
 	 * @param x (int) integer to convert to RobotType
 	 * @return (RobotType) according to integer code
 	 * code-to-type conversion:
@@ -573,6 +615,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * typeToInt
+	 *
 	 * @param r (RobotType) type of robot to convert to integer
 	 * @return (int) integer code for input robot type
 	 * code-to-type conversion:
@@ -604,6 +648,7 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * getOptimalDist
 	 *
 	 * @param ours (RobotType) type of our robot querying distance
 	 * @param theirs (RobotType) type of enemy robot to keep distance from
@@ -613,47 +658,51 @@ public strictfp class RobotPlayer {
 	static float getOptimalDist(RobotType ours, RobotType theirs){
 		switch (ours){
 			case ARCHON: case GARDENER:
-				return (float)7.0;
+				return 7.0f;
 			case LUMBERJACK:
 				switch (theirs){
 					case ARCHON: case GARDENER: case LUMBERJACK: case SCOUT: case SOLDIER:
-						return (float)2.05;
+						return 2.05f;
 					case TANK:
-						return (float)3.05;
+						return 3.05f;
 				}
 			case SCOUT:
 				switch (theirs){
 					case ARCHON:
-						return (float)3.05;
+						return 3.05f;
 					case GARDENER:case SCOUT:
-						return (float)2.05;
+						return 2.05f;
 					case LUMBERJACK:
-						return (float)5.05;
+						return 5.05f;
 					case SOLDIER: case TANK:
-						return (float)12.05;
+						return 12.05f;
 				}
 			case SOLDIER:
 				switch (theirs){
 					case ARCHON: case GARDENER: case SCOUT:
-						return (float)2.05;
-					case LUMBERJACK: case SOLDIER:
-						return (float)3.55;
+						return 2.05f;
+					case LUMBERJACK:
+						return 5.55f;
+					case SOLDIER:
+						return 3.55f;
 					case TANK:
-						return (float)6.05;
+						return 6.05f;
 				}
 			case TANK:
 				switch (theirs){
 					case ARCHON: case GARDENER: case LUMBERJACK: case SCOUT: case SOLDIER:
-						return (float)3.05;
+						return 3.05f;
 					case TANK:
-						return (float)4.05;
+						return 4.05f;
 				}
 		}
 		// Something fucked up, perchance...
-		return (float)0;
+		return 0f;
 	}
 
 	/**
+	 * getPriority
+	 *
 	 * @param ours (RobotType) type of friendly unit querying this function
 	 * @param theirs (RobotType) enemy unit being queried
 	 * @return (int) priority code of enemy unit for targeting purposes
@@ -696,6 +745,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * circleIntersectsLine
+	 *
 	 * @param center (MapLocation) location of center of circle
 	 * @param radius (float) radius of circle
 	 * @param start (MapLocation) line segment start
@@ -706,12 +757,32 @@ public strictfp class RobotPlayer {
 	 * @throws GameActionException
 	 */
 
-	static boolean CircleIntersectsLine(MapLocation center, float radius, MapLocation start, MapLocation end) throws GameActionException{
+	static boolean circleIntersectsLine(MapLocation center, float radius, MapLocation start, MapLocation end) throws GameActionException{
 		try{
+			// Assuming that start and end are not in the circle, if l_1 is the line through start and and
+			// and l_2 is the perpendicular bisector of the line segment, the condition for the circle
+			// to intersect the segment is (distance(center, l_1) < r && distance(center, l_2) < segment_length / 2).
+			if (distanceToLine(center, start, end) > radius){
+				return false;
+			}
+			MapLocation midpoint = new MapLocation(0.5f * start.x + 0.5f * end.x, 0.5f * start.y + 0.5f * end.y);
+			float halfSegmentLength = start.distanceTo(midpoint);
+			MapLocation startRotated = new MapLocation(0.5f * (start.x + end.x - start.y + end.y),
+													   0.5f * (start.x - end.x + start.y + end.y));
+			MapLocation endRotated = new MapLocation(0.5f * (start.x + end.x + start.y - end.y),
+													 0.5f * (-start.x + end.x + start.y + end.y));
+			if (distanceToLine(center, startRotated, endRotated) > halfSegmentLength){
+				return false;
+			}
+			return true;
+
+			/*int beginbytes = Clock.getBytecodeNum();
 			if(start.distanceTo(center) < radius){
+				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
 				return true;
 			}
 			if(end.distanceTo(center) < radius){
+				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
 				return true;
 			}
 			float segment_length = (float)Math.sqrt((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y));
@@ -734,9 +805,11 @@ public strictfp class RobotPlayer {
 			}
 			float circ_to_closest = (float)Math.sqrt((center.x - closest_x) * (center.x - closest_x) + (center.y - closest_y) * (center.y - closest_y));
 			if(circ_to_closest < radius){
+				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
 				return true;
 			}
-			return false;
+			System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
+			return false;*/
 		} catch(Exception e){
 			e.printStackTrace();
 			return false;
@@ -744,6 +817,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * findShakableTrees
+	 *
 	 * Finds all neutral trees that the robot can shake; shakes the tree with the most bullets.
 	 * @throws GameActionException
 	 */
@@ -778,6 +853,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * checkForStockpile
+	 *
 	 * If we have more than 40 robots, or we are at 2800 rounds, or we have enough bullets to win,
 	 * donate as many bullets as we can.
 	 * @throws GameActionException
@@ -801,6 +878,8 @@ public strictfp class RobotPlayer {
 	}
 
 	/**
+	 * randomDirection
+	 *
 	 * @return (Direction) randomly chosen Direction, produced from rotating absolute_right by an integer
 	 * 					number of times by 2*PI/num_angles.
 	 */

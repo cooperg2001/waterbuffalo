@@ -184,9 +184,9 @@ public class Lumberjack {
                                         for (int i = 0; i < RobotPlayer.num_angles; i++) {
                                             Direction target_dir;
                                             if (i % 2 == 0) {
-                                                target_dir = target_to_robot.rotateLeftRads((int) (i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
+                                                target_dir = target_to_robot.rotateLeftRads((i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
                                             } else {
-                                                target_dir = target_to_robot.rotateRightRads((int) (i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
+                                                target_dir = target_to_robot.rotateRightRads((i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
                                             }
                                             MapLocation target_loc = closest_tree.getLocation().add(target_dir, closest_tree.getRadius() + rc.getType().bodyRadius);
                                             if (rc.canMove(target_loc)) {
@@ -219,9 +219,9 @@ public class Lumberjack {
                                     for (int i = 0; i < RobotPlayer.num_angles; i++) {
                                         Direction target_dir;
                                         if (i % 2 == 0) {
-                                            target_dir = target_to_robot.rotateLeftRads((int) (i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
+                                            target_dir = target_to_robot.rotateLeftRads((i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
                                         } else {
-                                            target_dir = target_to_robot.rotateRightRads((int) (i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
+                                            target_dir = target_to_robot.rotateRightRads((i + 1) / 2 * 2 * (float) Math.PI / RobotPlayer.num_angles);
                                         }
                                         MapLocation target_loc = closest_tree.getLocation().add(target_dir, closest_tree.getRadius() + rc.getType().bodyRadius);
                                         if (rc.canMove(target_loc)) {

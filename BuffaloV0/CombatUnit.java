@@ -62,13 +62,13 @@ public class CombatUnit {
                     target = CombatStrategy.getShootingTarget();
                     if(target != null) {
                         targetLoc = target.getLocation();
-                    /*if(prevLoc != null) {
-                        nextLoc = targetLoc.add(prevLoc.directionTo(targetLoc), prevLoc.distanceTo(targetLoc));
-                        prevLoc = targetLoc;
-                        if(RobotPlayer.shotWillHit(rc.getLocation(), nextLoc)){
-                            targetLoc = nextLoc;
+                        if(prevLoc != null) {
+                            nextLoc = targetLoc.add(prevLoc.directionTo(targetLoc), prevLoc.distanceTo(targetLoc));
+                            prevLoc = targetLoc;
+                            if(CombatStrategy.shotWillHit(rc.getLocation(), nextLoc)){
+                                targetLoc = nextLoc;
+                            }
                         }
-                    }*/
                         float dist = rc.getLocation().distanceTo(targetLoc);
                         if (rc.canFirePentadShot() && dist < 6 && rc.getTeamBullets() > 20) {
                             rc.firePentadShot(rc.getLocation().directionTo(targetLoc));
