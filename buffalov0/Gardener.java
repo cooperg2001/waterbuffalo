@@ -171,7 +171,7 @@ public class Gardener {
                         if(lumberjack_ct < 20
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)
                                 && (soldier_ct >= 4 * lumberjack_ct + 2
-                                    || ((rc.senseNearbyTrees(4, RobotPlayer.NEUTRAL).length > 0) && soldier_ct >= 2 * lumberjack_ct))
+                                    || ((rc.senseNearbyTrees(4, RobotPlayer.NEUTRAL).length > 1) && soldier_ct >= 2 * lumberjack_ct))
                                 && (rc.getRoundNum() < 700 || cant_build_tank)){
                             rc.buildRobot(RobotType.LUMBERJACK, next_build);
                             rc.broadcast(902, rc.readBroadcast(902) + 1);

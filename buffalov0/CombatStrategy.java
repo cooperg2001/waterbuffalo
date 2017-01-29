@@ -5,6 +5,8 @@ import battlecode.common.*;
  * Created by Zach on 1/27/2017.
  */
 public class CombatStrategy {
+    static MapLocation prevTarget = RobotPlayer.INVALID_LOCATION;
+    static boolean lastCircledRight = true;
 
     /**
      * shotWillHit -OVERLOADED-
@@ -131,8 +133,9 @@ public class CombatStrategy {
             float displacement;
             float distance;
             MapLocation ours = RobotPlayer.rc.getLocation();
+            MapLocation theirs = target.getLocation();
             Direction dir;
-
+            MapLocation newLoc, circleLeft, circleRight;
             for (RobotInfo robot : RobotPlayer.robots) {
                 optimalDistance = RobotPlayer.getOptimalDist(RobotPlayer.rc.getType(), robot.getType());
                 distance = ours.distanceTo(robot.getLocation());
@@ -143,7 +146,28 @@ public class CombatStrategy {
                     force[1] += SPRING_CONSTANT * displacement * Math.sin(dir.radians);
                 }
             }
-            return new MapLocation(ours.x + force[0], ours.y + force[1]);
+            newLoc = new MapLocation(ours.x + force[0], ours.y + force[1]);
+            if(target.getLocation().distanceTo(prevTarget) < 1.5 && ours.distanceTo(newLoc) < 1){
+                circleRight = new MapLocation(newLoc.x + (theirs.y - newLoc.y), newLoc.y - (theirs.x - newLoc.x));
+                circleLeft = new MapLocation(newLoc.x - (theirs.y - newLoc.y), newLoc.y + (theirs.x - newLoc.x));
+                if(lastCircledRight){
+                    if(RobotPlayer.rc.canMove(circleRight)){
+                        newLoc = circleRight;
+                    } else if(RobotPlayer.rc.canMove(circleLeft)){
+                        newLoc = circleLeft;
+                        lastCircledRight = false;
+                    }
+                } else {
+                    if(RobotPlayer.rc.canMove(circleLeft)){
+                        newLoc = circleLeft;
+                    } else if(RobotPlayer.rc.canMove(circleRight)){
+                        newLoc = circleRight;
+                        lastCircledRight = true;
+                    }
+                }
+            }
+            prevTarget = target.getLocation();
+            return newLoc;
         } catch(Exception e){
             System.out.println("getBattleStance() error");
             e.printStackTrace();;
