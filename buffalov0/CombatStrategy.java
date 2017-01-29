@@ -147,7 +147,7 @@ public class CombatStrategy {
                 }
             }
             newLoc = new MapLocation(ours.x + force[0], ours.y + force[1]);
-            if(target.getLocation().distanceTo(prevTarget) < 1.5 && ours.distanceTo(newLoc) < 1){
+            if(target.getLocation().distanceTo(prevTarget) < 1.5){
                 circleRight = new MapLocation(newLoc.x + (theirs.y - newLoc.y), newLoc.y - (theirs.x - newLoc.x));
                 circleLeft = new MapLocation(newLoc.x - (theirs.y - newLoc.y), newLoc.y + (theirs.x - newLoc.x));
                 if(lastCircledRight){
