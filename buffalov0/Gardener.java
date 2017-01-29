@@ -83,7 +83,7 @@ public class Gardener {
                 int unoccupied_rotated_min = RobotPlayer.num_angles - 1;
                 MapLocation check;
                 for(int i = 0; i < RobotPlayer.num_angles; i++){
-                    int j = (i + RobotPlayer.num_angles / 3) & (RobotPlayer.num_angles);
+                    int j = (i + RobotPlayer.num_angles / 3) % (RobotPlayer.num_angles);
                     Direction next_build = RobotPlayer.backward.rotateLeftRads(i * gardener_angle_gradient);
                     check = rc.getLocation().add(next_build, 2);
                     if(!rc.isCircleOccupiedExceptByThisRobot(check, 1) && rc.onTheMap(check, 1)){
