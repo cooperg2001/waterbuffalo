@@ -510,7 +510,7 @@ public strictfp class RobotPlayer {
 	 * @return (MapLocation) best position to move to so we can shoot at the robot without being in harm's way
 	 * @throws GameActionException
 	 */
-	 
+
 	static MapLocation getBestShootingLocation(RobotInfo priority_target) throws GameActionException{
 		// Find distance the robot SHOULD be away from the enemy
 		float optimalDist = getOptimalDist(rc.getType(), priority_target.getType());
@@ -540,7 +540,7 @@ public strictfp class RobotPlayer {
 		}
 
 		return INVALID_LOCATION;
-	}	
+	}
 
 	/**
 	 * dodgeBullets
@@ -749,67 +749,32 @@ public strictfp class RobotPlayer {
 	 *
 	 * @param center (MapLocation) location of center of circle
 	 * @param radius (float) radius of circle
-	 * @param start (MapLocation) line segment start
-	 * @param end (MapLocation) line segment end
+	 * @param start_loc (MapLocation) center of where path starts (this will always be center of rc)
+	 * @param end_loc (MapLocation) center of where path ends (in general, unit will be here)
 	 * @return (boolean) determines if the line segment with endpoints "start" and "end"
 	 * 					intersects the interior (not just boundary) of the circle
 	 * 					centered at "center" with radius "radius"
 	 * @throws GameActionException
 	 */
 
-	static boolean circleIntersectsLine(MapLocation center, float radius, MapLocation start, MapLocation end) throws GameActionException{
+	static boolean circleIntersectsPath(MapLocation center, float radius, MapLocation start_loc, MapLocation end_loc) throws GameActionException{
 		try{
-			// Assuming that start and end are not in the circle, if l_1 is the line through start and and
-			// and l_2 is the perpendicular bisector of the line segment, the condition for the circle
-			// to intersect the segment is (distance(center, l_1) < r && distance(center, l_2) < segment_length / 2).
-			if (distanceToLine(center, start, end) > radius){
+			// If angle theta between center and start_loc is >= 90, the circle will never intersect.
+			Direction path_direction = start_loc.directionTo(end_loc);
+			float theta = start_loc.directionTo(center).degreesBetween(path_direction);
+			if (theta >= 90) {
 				return false;
 			}
-			MapLocation midpoint = new MapLocation(0.5f * start.x + 0.5f * end.x, 0.5f * start.y + 0.5f * end.y);
-			float halfSegmentLength = start.distanceTo(midpoint);
-			MapLocation startRotated = new MapLocation(0.5f * (start.x + end.x - start.y + end.y),
-													   0.5f * (start.x - end.x + start.y + end.y));
-			MapLocation endRotated = new MapLocation(0.5f * (start.x + end.x + start.y - end.y),
-													 0.5f * (-start.x + end.x + start.y + end.y));
-			if (distanceToLine(center, startRotated, endRotated) > halfSegmentLength){
+			// If center.equals(end_loc) for some reason, return false.
+			// We're using this for targeting anyways...
+			if (center.equals(end_loc)){
 				return false;
 			}
-			return true;
-
-			/*int beginbytes = Clock.getBytecodeNum();
-			if(start.distanceTo(center) < radius){
-				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
-				return true;
-			}
-			if(end.distanceTo(center) < radius){
-				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
-				return true;
-			}
-			float segment_length = (float)Math.sqrt((end.x - start.x) * (end.x - start.x) + (end.y - start.y) * (end.y - start.y));
-			float dx = (end.x - start.x) / segment_length;
-			float dy = (end.y - start.y) / segment_length;
-			float t = dx * (center.x - start.x) + dy * (center.y - start.y); // project of center to segment
-			float closest_x;
-			float closest_y;
-			if(t < 0){
-				closest_x = start.x;
-				closest_y = start.y;
-			}
-			else if(t > segment_length){
-				closest_x = end.x;
-				closest_y = end.y;
-			}
-			else{
-				closest_x = start.x + t * dx;
-				closest_y = start.y + t * dy;
-			}
-			float circ_to_closest = (float)Math.sqrt((center.x - closest_x) * (center.x - closest_x) + (center.y - closest_y) * (center.y - closest_y));
-			if(circ_to_closest < radius){
-				System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
-				return true;
-			}
-			System.out.println("Cost " + (Clock.getBytecodeNum() - beginbytes));
-			return false;*/
+			// Else, let d be distance from start_loc to center.
+			// circle intersects path if and only if d < path length
+			// and d*sin(theta) < radius.
+			float d = start_loc.distanceTo(center);
+			return (d * Math.sin(theta) < radius && d < start_loc.distanceTo(end_loc));
 		} catch(Exception e){
 			e.printStackTrace();
 			return false;

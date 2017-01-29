@@ -27,7 +27,7 @@ public class CombatStrategy {
         TreeInfo[] trees_near_target = RobotPlayer.rc.senseNearbyTrees(bullet_path_midpoint, loc.distanceTo(targetLoc) / 2f, null);
 
         for (RobotInfo robot : friendly_robots_near_target){
-            if (RobotPlayer.circleIntersectsLine(robot.getLocation(), robot.getType().bodyRadius, loc, targetLoc)){
+            if (RobotPlayer.circleIntersectsPath(robot.getLocation(), robot.getType().bodyRadius, loc, targetLoc)){
                 System.out.println("After " + Clock.getBytecodeNum());
                 return false;
             }
@@ -39,7 +39,7 @@ public class CombatStrategy {
                 // Should just go ahead and shoot down trees
                 continue;
             }
-            if(RobotPlayer.circleIntersectsLine(tree.getLocation(), tree.radius, loc, targetLoc)){
+            if(RobotPlayer.circleIntersectsPath(tree.getLocation(), tree.radius, loc, targetLoc)){
                 System.out.println("After " + Clock.getBytecodeNum());
                 return false;
             }
