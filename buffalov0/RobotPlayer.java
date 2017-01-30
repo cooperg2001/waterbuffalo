@@ -761,8 +761,8 @@ public strictfp class RobotPlayer {
 		try{
 			// If angle theta between center and start_loc is >= 90, the circle will never intersect.
 			Direction path_direction = start_loc.directionTo(end_loc);
-			float theta = start_loc.directionTo(center).degreesBetween(path_direction);
-			if (theta >= 90) {
+			float theta = start_loc.directionTo(center).radiansBetween(path_direction);
+			if (theta >= Math.PI / 2) {
 				return false;
 			}
 			// If center.equals(end_loc) for some reason, return false.
