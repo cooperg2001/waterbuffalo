@@ -7,6 +7,36 @@ import battlecode.common.*;
 public class CombatStrategy {
     static MapLocation prevTarget = RobotPlayer.INVALID_LOCATION;
     static boolean lastCircledRight = true;
+	
+	public static boolean shouldMulti(MapLocation loc, MapLocation targetLoc, int num_multishot) throws GameActionException{
+		for(int i = -num_multishot/2; i <= num_multishot/2; i++){
+			if(i == 0){
+				continue;
+			}
+			float dist = loc.distanceTo(targetLoc);
+			MapLocation newLoc = RobotPlayer.INVALID_LOCATION;
+			if(num_multishot == 5 && i > 0){
+				newLoc = loc.add(loc.directionTo(targetLoc).rotateLeftDegrees(15 * i), dist);
+			}
+			if(num_multishot == 5 && i < 0){
+				newLoc = loc.add(loc.directionTo(targetLoc).rotateRightDegrees(15 * -i), dist);
+			}
+			if(num_multishot == 3 && i > 0){
+				newLoc = loc.add(loc.directionTo(targetLoc).rotateLeftDegrees(20 * i), dist);
+			}
+			if(num_multishot == 3 && i < 0){
+				newLoc = loc.add(loc.directionTo(targetLoc).rotateRightDegrees(20 * -i), dist);
+			}
+			MapLocation bullet_path_midpoint = loc.add(loc.directionTo(newLoc), loc.distanceTo(newLoc) / 2f);
+			RobotInfo[] friendly_robots_near_target = RobotPlayer.rc.senseNearbyRobots(bullet_path_midpoint,loc.distanceTo(newLoc) / 2f, RobotPlayer.FRIEND);
+			for (RobotInfo robot : friendly_robots_near_target){
+				if (RobotPlayer.circleIntersectsPath(robot.getLocation(), robot.getType().bodyRadius, loc, newLoc)){
+					return false;
+				}
+			}
+		}
+		return true;
+	}
 
     /**
      * shotWillHit -OVERLOADED-
@@ -76,7 +106,6 @@ public class CombatStrategy {
         int priorityType = 0;
         for(int i = 1; i < potentialTargets.length; i++) {
             if(!potentialTargets[i].equals(RobotPlayer.INVALID_LOCATION)
-                    && rc.canMove(potentialTargets[i])
                     && RobotPlayer.getPriority(rc.getType(), RobotPlayer.intToType(i)) < RobotPlayer.getPriority(rc.getType(), RobotPlayer.intToType(priorityType))) {
                 priorityType = i;
             }

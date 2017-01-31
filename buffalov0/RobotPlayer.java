@@ -169,7 +169,7 @@ public strictfp class RobotPlayer {
 	 */
 
 	public static float getArmyToTreeRatio(){
-		return 1.0f + 0.0005f * rc.getRoundNum();
+		return 0.5f + 0.0005f * rc.getRoundNum();
 	}
 
 	/**

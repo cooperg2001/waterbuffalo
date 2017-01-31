@@ -66,10 +66,10 @@ public class CombatUnit {
                             }
                         }
                         float dist = rc.getLocation().distanceTo(targetLoc);
-                        if (rc.canFirePentadShot() && dist < 6 && rc.getTeamBullets() > 20) {
+                        if (rc.canFirePentadShot() && dist < 6 && rc.getTeamBullets() > 20 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 5)) {
                             rc.firePentadShot(rc.getLocation().directionTo(targetLoc));
                         }
-                        if (rc.canFireTriadShot() && dist < 8) {//i don't think 8's a useful number, but has to be >6 because tanks
+                        if (rc.canFireTriadShot() && dist < 8 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 3)) {//i don't think 8's a useful number, but has to be >6 because tanks
                             rc.fireTriadShot(rc.getLocation().directionTo(targetLoc));
                         }
                         if (rc.canFireSingleShot()) {
