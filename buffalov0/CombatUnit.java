@@ -10,9 +10,6 @@ public class CombatUnit {
         boolean sentDeathSignal = false; //have we sent out a death signal
         Direction rand = RobotPlayer.randomDirection();
 
-        Direction bugPath_previous_velocity = rand;
-        MapLocation bugPath_path_start = rc.getLocation();
-        MapLocation bugPath_closest_point = rc.getLocation();
         RobotInfo target;
         MapLocation targetLoc;
         MapLocation prevLoc = null, nextLoc;
@@ -35,9 +32,8 @@ public class CombatUnit {
                 if(target == null){
                     prevLoc = null;
                     targetLoc = CombatStrategy.locateTarget();
-                    if (!targetLoc.equals(RobotPlayer.INVALID_LOCATION) && rc.canMove(targetLoc) && !rc.hasMoved()) {
-                        rc.move(targetLoc);
-                        rand = RobotPlayer.randomDirection();
+                    if (!targetLoc.equals(RobotPlayer.INVALID_LOCATION)) {
+                        RobotPlayer.bugPathToLoc(targetLoc);
                     } else {
                         if (rc.canMove(rand) && !rc.hasMoved()) {
                             rc.move(rand);
