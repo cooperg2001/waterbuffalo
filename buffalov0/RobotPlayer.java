@@ -169,7 +169,21 @@ public strictfp class RobotPlayer {
 	 */
 
 	public static float getArmyToTreeRatio(){
-		return 0.5f + 0.0005f * rc.getRoundNum();
+		try {
+			int mapSize = rc.readBroadcast(38) - rc.readBroadcast(37);
+			mapSize = mapSize / 1000 + mapSize % 1000;
+			if(mapSize > 170){
+				return 0.5f + 0.0001f * rc.getRoundNum();
+			} else if(mapSize > 140){
+				return 0.5f + 0.0002f * rc.getRoundNum();
+			} else if(mapSize > 100){
+				return 0.5f + 0.0003f * rc.getRoundNum();
+			}
+		} catch(Exception e){
+			System.out.println("getArmyToTreeRatio() Exception");
+			e.printStackTrace();
+		}
+		return 0.5f + 0.0004f * rc.getRoundNum();
 	}
 
 	/**
@@ -701,9 +715,9 @@ public strictfp class RobotPlayer {
 					case LUMBERJACK:
 						return 5.55f;
 					case SOLDIER:
-						return 6.05f;
+						return 4.05f;
 					case TANK:
-						return 8.75f;
+						return 8.55f;
 				}
 			case TANK:
 				switch (theirs){
