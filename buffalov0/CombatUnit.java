@@ -66,10 +66,10 @@ public class CombatUnit {
                             }
                         }
                         float dist = rc.getLocation().distanceTo(targetLoc);
-                        if (rc.canFirePentadShot() && dist < 6 && rc.getTeamBullets() > 20 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 5)) {
+                        if (rc.canFirePentadShot() && dist < 8 && rc.getTeamBullets() > 20 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 5)) {
                             rc.firePentadShot(rc.getLocation().directionTo(targetLoc));
                         }
-                        if (rc.canFireTriadShot() && dist < 8 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 3)) {//i don't think 8's a useful number, but has to be >6 because tanks
+                        if (rc.canFireTriadShot() && dist < 8 && CombatStrategy.shouldMulti(rc.getLocation(), targetLoc, 3)) {
                             rc.fireTriadShot(rc.getLocation().directionTo(targetLoc));
                         }
                         if (rc.canFireSingleShot()) {
@@ -90,7 +90,11 @@ public class CombatUnit {
                     rc.broadcast(900 + RobotPlayer.typeToInt(rc.getType()), rc.readBroadcast(900 + RobotPlayer.typeToInt(rc.getType())) - 1);
                     // Decrement the number in our army stored in broadcast
                 }
-
+				
+				while(Clock.getBytecodeNum() < 14500){
+					// Spam people using getBroadcastLocations()
+					rc.broadcast(2000, 0);
+				}
                 Clock.yield();
             } catch(Exception e){
                 e.printStackTrace();

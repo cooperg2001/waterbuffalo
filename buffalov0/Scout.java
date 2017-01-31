@@ -57,7 +57,10 @@ public class Scout{
 						rc.move(rand);
 					}
 				}
-				
+				while(Clock.getBytecodeNum() < 14500){
+					// Spam people using getBroadcastLocations()
+					rc.broadcast(2000, 0);
+				}
 				Clock.yield();
 			}catch(Exception e){
 				e.printStackTrace();

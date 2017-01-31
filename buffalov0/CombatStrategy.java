@@ -110,6 +110,9 @@ public class CombatStrategy {
                 priorityType = i;
             }
         }
+		if(priorityType == 0 && rc.getRoundNum() < 400){
+			return RobotPlayer.INVALID_LOCATION;
+		}
         return potentialTargets[priorityType];
     }
 

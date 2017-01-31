@@ -167,7 +167,10 @@ public class Archon {
                     rc.broadcast(8,rc.getRoundNum());
                 }
 
-
+				while(Clock.getBytecodeNum() < 14500){
+					// Spam people using getBroadcastLocations()
+					rc.broadcast(2000, 0);
+				}
                 Clock.yield();
             } catch(Exception e){
                 System.out.println("Archon Exception");

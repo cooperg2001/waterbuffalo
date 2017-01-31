@@ -197,6 +197,10 @@ public class Gardener {
                     sentDeathSignal = true;
                     rc.broadcast(900 + RobotPlayer.typeToInt(rc.getType()), rc.readBroadcast(900 + RobotPlayer.typeToInt(rc.getType())) - 1);
                 }
+				while(Clock.getBytecodeNum() < 14500){
+					// Spam people using getBroadcastLocations()
+					rc.broadcast(2000, 0);
+				}
                 Clock.yield();
             } catch(Exception e){
                 e.printStackTrace();
