@@ -715,9 +715,9 @@ public strictfp class RobotPlayer {
 					case LUMBERJACK:
 						return 5.55f;
 					case SOLDIER:
-						return 4.05f;
+						return 6.05f;
 					case TANK:
-						return 8.55f;
+						return 8.75f;
 				}
 			case TANK:
 				switch (theirs){

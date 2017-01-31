@@ -29,7 +29,7 @@ public class CombatUnit {
                 RobotPlayer.updateEnemiesAndBroadcast();
 
                 target = CombatStrategy.getShootingTarget();
-                if(target == null){
+                if(target == null || (target.getType() == RobotType.ARCHON && rc.getRoundNum() < 499)){
                     prevLoc = null;
                     targetLoc = CombatStrategy.locateTarget();
                     if (!targetLoc.equals(RobotPlayer.INVALID_LOCATION)) {
