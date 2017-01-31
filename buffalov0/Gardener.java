@@ -17,7 +17,7 @@ public class Gardener {
         int gardenerCounter = 0; //gives a cooldown for when to sent out a signal that the gardener is full of trees
         final int COOLDOWN = 10; //the cooldown for when to say we've maxed out on trees
 
-        while(rc.getRoundNum() > 200 && rc.senseNearbyTrees(4).length > 0 && round_spawned + 200 > rc.getRoundNum()){
+        while(rc.getRoundNum() > 200 && rc.senseNearbyTrees(5 - (rc.getRoundNum() - round_spawned) / 100).length > 1 && round_spawned + 200 > rc.getRoundNum()){
             if (rc.canMove(rand) && !rc.hasMoved()) {
                 rc.move(rand);
             } else {
@@ -120,8 +120,7 @@ public class Gardener {
                 }
                 if(should_build_tree
                         && rc.getRoundNum() > 40
-                        && (rc.getTreeCount() < gardener_ct * RobotPlayer.getTreeToGardenerRatio()
-                            || tree_ct * RobotPlayer.getArmyToTreeRatio() < (soldier_ct+lumberjack_ct+tank_ct)
+                        && (tree_ct * RobotPlayer.getArmyToTreeRatio() < (soldier_ct + lumberjack_ct + tank_ct)
                             || rc.getTeamBullets() > 150)){
                     // Leave a location open to build combat units in, and don't build a tree if our army is weak
                     // System.out.println("Building tree...");
@@ -167,6 +166,10 @@ public class Gardener {
                         }
                         else{
                             next_build = RobotPlayer.forward.rotateRightRads((int)(i + 1)/2 * gardener_angle_gradient);
+                        }
+                        if(scout_ct < 1 && soldier_ct + lumberjack_ct > 2 && rc.getRoundNum() > 500 && rc.canBuildRobot(RobotType.SCOUT, next_build)){
+                            rc.buildRobot(RobotType.SCOUT, next_build);
+                            rc.broadcast(903, rc.readBroadcast(903) + 1);
                         }
                         if(lumberjack_ct < 20
                                 && rc.canBuildRobot(RobotType.LUMBERJACK, next_build)

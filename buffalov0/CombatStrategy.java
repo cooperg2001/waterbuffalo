@@ -20,7 +20,6 @@ public class CombatStrategy {
      */
 
     public static boolean shotWillHit(MapLocation loc, MapLocation targetLoc) throws GameActionException{
-        System.out.println("Before " + Clock.getBytecodeNum());
         MapLocation bullet_path_midpoint = loc.add(loc.directionTo(targetLoc), loc.distanceTo(targetLoc) / 2f);
 
         RobotInfo[] friendly_robots_near_target = RobotPlayer.rc.senseNearbyRobots(bullet_path_midpoint,loc.distanceTo(targetLoc) / 2f, RobotPlayer.FRIEND);
@@ -28,7 +27,6 @@ public class CombatStrategy {
 
         for (RobotInfo robot : friendly_robots_near_target){
             if (RobotPlayer.circleIntersectsPath(robot.getLocation(), robot.getType().bodyRadius, loc, targetLoc)){
-                System.out.println("After " + Clock.getBytecodeNum());
                 return false;
             }
         }
@@ -40,12 +38,11 @@ public class CombatStrategy {
                 continue;
             }
             if(RobotPlayer.circleIntersectsPath(tree.getLocation(), tree.radius, loc, targetLoc)){
-                System.out.println("After " + Clock.getBytecodeNum());
                 return false;
             }
         }
 
-        System.out.println("After " + Clock.getBytecodeNum());
+
         return true;
     }
 

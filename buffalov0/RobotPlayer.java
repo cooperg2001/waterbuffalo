@@ -127,7 +127,7 @@ public strictfp class RobotPlayer {
                 Lumberjack.runLumberjack(rc);
                 break;
 			case SCOUT:
-				CombatUnit.runCombatUnit(rc);
+				Scout.runScout(rc);
 				break;
 			case SOLDIER:
 				CombatUnit.runCombatUnit(rc);
@@ -501,6 +501,23 @@ public strictfp class RobotPlayer {
 				rc.broadcast(500 + i, (int)enemies[i][0].getLocation().x * 1000 + (int)enemies[i][0].getLocation().y);
 			}
 		}
+
+		//Update map size if we've reached past WHERE WE KNOW
+		int lowerLeft = rc.readBroadcast(37);
+		int upperRight = rc.readBroadcast(38);
+		MapLocation ours = rc.getLocation();
+		if(ours.x < lowerLeft / 1000){
+			rc.broadcast(37, ((int)(ours.x)) * 1000 + (lowerLeft % 1000));
+		}
+		if(ours.y < lowerLeft % 1000){
+			rc.broadcast(37, (lowerLeft / 1000) * 1000 + (int)ours.y);
+		}
+		if(ours.x > upperRight / 1000){
+			rc.broadcast(38, ((int)(ours.x)) * 1000 + (upperRight % 1000));
+		}
+		if(ours.y > upperRight % 1000){
+			rc.broadcast(38, (upperRight / 1000) * 1000 + (int)ours.y);
+		}
 	}
 
 	/**
@@ -761,7 +778,7 @@ public strictfp class RobotPlayer {
 		try{
 			// If angle theta between center and start_loc is >= 90, the circle will never intersect.
 			Direction path_direction = start_loc.directionTo(end_loc);
-			float theta = start_loc.directionTo(center).radiansBetween(path_direction);
+			float theta = Math.abs(start_loc.directionTo(center).radiansBetween(path_direction));
 			if (theta >= Math.PI / 2) {
 				return false;
 			}

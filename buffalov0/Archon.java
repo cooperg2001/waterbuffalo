@@ -25,10 +25,45 @@ public class Archon {
 		}
 		rc.broadcast(900, rc.readBroadcast(900) + 1);
 
+		int minx = 999, miny = 999, maxx = 0, maxy = 0;
+        for(MapLocation loc : rc.getInitialArchonLocations(RobotPlayer.FRIEND)){
+            if(loc.x < minx){
+                minx = (int)loc.x;
+            }
+            if(loc.y < miny){
+                miny = (int)loc.y;
+            }
+            if(loc.x > maxx){
+                maxx = (int)loc.x;
+            }
+            if(loc.y > maxy){
+                maxy = (int)loc.y;
+            }
+        }
+        for(MapLocation loc : rc.getInitialArchonLocations(RobotPlayer.ENEMY)){
+            if(loc.x < minx){
+                minx = (int)loc.x;
+            }
+            if(loc.y < miny){
+                miny = (int)loc.y;
+            }
+            if(loc.x > maxx){
+                maxx = (int)loc.x;
+            }
+            if(loc.y > maxy){
+                maxy = (int)loc.y;
+            }
+        }
+		rc.broadcast(37, minx * 1000 + miny);
+        rc.broadcast(38, maxx * 1000 + maxy);
+
         Direction rand = RobotPlayer.randomDirection();
 
         while(true){
             try{
+                System.out.println("lowerLeft " + rc.readBroadcast(37));
+                System.out.println("upperRight " + rc.readBroadcast(38));
+
                 RobotPlayer.findShakableTrees();
                 RobotPlayer.checkForStockpile();
 
@@ -71,7 +106,9 @@ public class Archon {
 
 
                 //Check for hiring gardeners if no more trees can be planted
-                if(rc.readBroadcast(7) == 1 && rc.readBroadcast(8) < rc.getRoundNum()){
+                if(rc.readBroadcast(7) == 1
+                        && rc.readBroadcast(8) < rc.getRoundNum()
+                        && (rc.getRoundNum() < 100 || gardener_ct < soldier_ct + tank_ct + scout_ct + lumberjack_ct)){
                     // Check all angles around us for potential build locations
                     for (int i = 0; i < RobotPlayer.num_angles; i++) {
                         Direction dir = RobotPlayer.absolute_right.rotateLeftRads(RobotPlayer.potential_angles[i]);
